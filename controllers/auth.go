@@ -14,10 +14,13 @@ import (
 // Register user baru
 func Register(c *gin.Context) {
 	var input struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		FullName string `json:"fullName"`
-		Phone    string `json:"phone"`
+		Email    string  `json:"email"`
+		Password string  `json:"password"`
+		FullName string  `json:"fullName"`
+		Phone    string  `json:"phone"`
+		Avatar   *string `json:"avatar"`
+		Fb       string  `json:"fb"`
+		Ig       string  `json:"ig"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -30,26 +33,53 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar"})
 		return
 	}
+	defaultAvatar := "https://avatar.iran.liara.run/public"
+
+	if input.Avatar == nil {
+		input.Avatar = &defaultAvatar
+	}
+
+	if input.Phone == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Please fill your phone number",
+		})
+		return
+	}
+	if input.Fb == "" && input.Ig == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Please fill at least one: Instagram or Facebook.",
+		})
+		return
+	}
 
 	hashed, _ := utils.HashPassword(input.Password)
+
 	user := models.User{
+		ID:       uuid.New(),
 		Email:    input.Email,
 		Password: hashed,
 		FullName: input.FullName,
 		Phone:    input.Phone,
-		Avatar:   "https://avatar.iran.liara.run/public",
+		Avatar:   input.Avatar,
+		Ig:       input.Ig,
+		Fb:       input.Fb,
+		Role:     "USER",
 	}
 
 	config.DB.Create(&user)
 	token := uuid.NewString()
 	session := models.Session{
+		ID:        uuid.New(),
 		UserID:    user.ID,
 		Token:     token,
 		Device:    "Device",
 		IP:        c.ClientIP(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-	config.DB.Create(&session)
+	if err := config.DB.Create(&session).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Terjadi kesalahan saat mendaftar", "err": err})
+		return
+	}
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Registrasi berhasil",
 		"token":   token,
