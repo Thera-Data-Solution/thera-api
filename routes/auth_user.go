@@ -7,16 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthRoutes(r *gin.Engine, ac *controllers.AuthController) {
-	auth := r.Group("/api/admin")
+func UserRoutes(r *gin.Engine, ac *controllers.AuthController) {
+	auth := r.Group("/api/auth")
 
 	{
 		auth.POST("/register", ac.AdminRegister)
 		auth.POST("/login", ac.AdminLogin)
 	}
 
-	protected := r.Group("/admin")
-	protected.Use(middleware.AdminAuthMiddleware(ac.SessionRepo, ac.TenantUserRepo))
+	protected := r.Group("")
+	protected.Use(middleware.UserAuthMiddleware(ac.SessionRepo, ac.UserRepo))
 	{
 		protected.GET("/me", ac.AdminMe)
 	}

@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"thera-api/models"
 )
 
@@ -29,7 +28,6 @@ func (r *TenantUserRepository) FindByEmailAndTenant(email string, tenantId *stri
 		}
 		return nil, err
 	}
-	fmt.Println(t)
 	return &t, nil
 }
 

@@ -26,14 +26,12 @@ func (ac *AuthController) AdminRegister(c *gin.Context) {
 		return
 	}
 
-	// cek email sudah ada
 	existing, _ := ac.TenantUserRepo.FindByEmailAndTenant(r.Email, r.TenantId)
 	if existing != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email sudah terdaftar untuk tenant ini"})
 		return
 	}
 
-	// hash password, buat id dsb
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(r.Password), bcrypt.DefaultCost)
 	avatar := "https://api.dicebear.com/9.x/fun-emoji/svg?seed=" + url.QueryEscape(r.FullName)
 	tenantUser := &models.TenantUser{

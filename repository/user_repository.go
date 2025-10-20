@@ -11,8 +11,8 @@ type UserRepository struct {
 }
 
 func (r *UserRepository) CreateUser(user *models.User) error {
-	query := `INSERT INTO "user" (id, avatar, email, password, fullName, phone, address, ig, fb, disable, tenantId, createdAt, updatedAt)
-	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now(), now())`
+	query := `INSERT INTO "User" (id, avatar, email, password, "fullName", phone, address, ig, fb, disable, "tenantId")
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
 	_, err := r.DB.Exec(query,
 		user.ID, user.Avatar, user.Email, user.Password, user.FullName,
 		user.Phone, user.Address, user.IG, user.FB, user.Disable, user.TenantId,
@@ -24,7 +24,7 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 }
 
 func (r *UserRepository) FindByEmailAndTenant(email string, tenantId *string) (*models.User, error) {
-	query := `SELECT id, avatar, email, password, fullName, phone, address, ig, fb, disable, tenantId FROM "user" WHERE email=$1 AND tenantId IS NOT DISTINCT FROM $2 LIMIT 1`
+	query := `SELECT id, avatar, email, password, "fullName", phone, address, ig, fb, disable, "tenantId" FROM "User" WHERE email=$1 AND "tenantId" IS NOT DISTINCT FROM $2 LIMIT 1`
 	row := r.DB.QueryRow(query, email, tenantId)
 	var u models.User
 	var avatar, phone, address, ig, fb, tenant sql.NullString

@@ -9,6 +9,7 @@ import (
 func SetupRoutes(authController *controllers.AuthController) *gin.Engine {
 	r := gin.Default()
 	AuthRoutes(r, authController)
+	UserRoutes(r, authController)
 
 	return r
 }
