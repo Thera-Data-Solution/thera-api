@@ -62,7 +62,7 @@ func (r *UserRepository) FindByEmailAndTenant(email string, tenantId *string) (*
 	return &u, nil
 }
 
-func (r *UserRepository) FindById(id string) (*models.User, error) {
+func (r *UserRepository) FindUserById(id string) (*models.User, error) {
 	query := `SELECT * FROM "User" WHERE id=$1 LIMIT 1`
 	row := r.DB.QueryRow(query, id)
 	var u models.User

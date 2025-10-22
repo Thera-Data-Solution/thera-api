@@ -18,7 +18,7 @@ func UserAuthMiddleware(sessionRepo *repository.SessionRepository, userRepo *rep
 			return
 		}
 
-		ses, err := sessionRepo.FindByToken(token)
+		ses, err := sessionRepo.FindSessionByToken(token)
 		if err != nil || ses == nil || ses.UserId == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
 			c.Abort()
@@ -32,7 +32,7 @@ func UserAuthMiddleware(sessionRepo *repository.SessionRepository, userRepo *rep
 			return
 		}
 
-		user, err := userRepo.FindById(*ses.UserId)
+		user, err := userRepo.FindUserById(*ses.UserId)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
 			c.Abort()

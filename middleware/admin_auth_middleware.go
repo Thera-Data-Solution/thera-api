@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -17,8 +18,9 @@ func AdminAuthMiddleware(sessionRepo *repository.SessionRepository, tenantRepo *
 			c.Abort()
 			return
 		}
-
-		ses, err := sessionRepo.FindByToken(token)
+		fmt.Println(token)
+		ses, err := sessionRepo.FindSessionByToken(token)
+		fmt.Println(ses)
 		if err != nil || ses == nil || ses.TenantUserId == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
 			c.Abort()
@@ -33,7 +35,7 @@ func AdminAuthMiddleware(sessionRepo *repository.SessionRepository, tenantRepo *
 		}
 
 		// var user *models.TenantUser
-		user, err := tenantRepo.FindTenantById(*ses.TenantUserId)
+		user, err := tenantRepo.FindTenantUserById(*ses.TenantUserId)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
 			c.Abort()

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,11 +23,23 @@ func (ac *AuthController) AdminRegister(c *gin.Context) {
 	}
 	var r input
 	if err := c.ShouldBindJSON(&r); err != nil {
+		fmt.Println("Terjadi kesalahan", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
+	if r.TenantId == nil {
+		fmt.Println("Terjadi kesalahan", r)
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid input"})
+		return
+	}
 
-	existing, _ := ac.TenantUserRepo.FindByEmailAndTenant(r.Email, r.TenantId)
+	_, errnotenant := ac.TenantRepo.FindTenantById(*r.TenantId)
+	if errnotenant != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Terjadi kesalahan sistem"})
+		return
+	}
+
+	existing, _ := ac.TenantUserRepo.FindTenantUserByEmailAndTenant(r.Email, r.TenantId)
 	if existing != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email sudah terdaftar untuk tenant ini"})
 		return
@@ -43,9 +56,9 @@ func (ac *AuthController) AdminRegister(c *gin.Context) {
 		Avatar:   &avatar,
 	}
 
-	err := ac.TenantUserRepo.CreateTenantUser(tenantUser)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	ec := ac.TenantUserRepo.CreateTenantUser(tenantUser)
+	if ec != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ec.Error()})
 		return
 	}
 
@@ -60,24 +73,59 @@ func (ac *AuthController) AdminLogin(c *gin.Context) {
 		Device   *string `json:"device"`
 		IP       *string `json:"ip"`
 	}
+
 	var r req
 	if err := c.ShouldBindJSON(&r); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	tu, err := ac.TenantUserRepo.FindByEmailAndTenant(r.Email, r.TenantId)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "email/password wrong"})
+	byemail, err := ac.TenantUserRepo.FindTenantUserByEmail(r.Email)
+	if err != nil || byemail == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
 		return
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(tu.Password), []byte(r.Password)) != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "email/password wrong"})
+	if byemail.Role == nil || *byemail.Role == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role"})
 		return
 	}
 
-	token := uuid.New().String()
+	currentRole := *byemail.Role
+	hasReqTenantId := r.TenantId != nil && *r.TenantId != ""
+
+	var user *models.TenantUser
+
+	switch currentRole {
+	case "SU":
+		user = byemail
+
+	case "ADMIN":
+		if !hasReqTenantId {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tenant ID wajib diisi untuk ADMIN"})
+			return
+		}
+
+		tu, err := ac.TenantUserRepo.FindTenantUserByEmailAndTenant(r.Email, r.TenantId)
+		if err != nil || tu == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
+			return
+		}
+		user = tu
+
+	case "USER":
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: User role tidak diizinkan login di sini"})
+		return
+
+	default:
+		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid role access"})
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(r.Password)) != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
+		return
+	}
+
 	expHours := 24
 	if v := os.Getenv("SESSION_EXPIRE_HOURS"); v != "" {
 		if h, err := strconv.Atoi(v); err == nil {
@@ -86,24 +134,40 @@ func (ac *AuthController) AdminLogin(c *gin.Context) {
 	}
 	exp := time.Now().Add(time.Hour * time.Duration(expHours)).UTC()
 
+	sessionTenantId := r.TenantId
+	if sessionTenantId == nil || *sessionTenantId == "" {
+		sessionTenantId = user.TenantId
+	}
+
+	if err := ac.SessionRepo.DeleteByTenantUserId(user.ID); err != nil {
+		fmt.Println("⚠️  Warning: gagal menghapus session lama:", err)
+	}
+
 	s := &models.Session{
 		ID:           uuid.New().String(),
-		TenantUserId: &tu.ID,
-		Token:        token,
+		TenantUserId: &user.ID,
+		Token:        uuid.New().String(),
 		Device:       r.Device,
 		IP:           r.IP,
 		ExpiresAt:    exp.Format(time.RFC3339),
-		TenantId:     r.TenantId,
+		TenantId:     sessionTenantId,
 	}
-	ac.SessionRepo.DeleteByTenantUserId(tu.ID)
+
 	if err := ac.SessionRepo.CreateSession(s); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal membuat session", "err": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat session", "details": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":     token,
+		"token":     s.Token,
 		"expiresAt": s.ExpiresAt,
+		"user": gin.H{
+			"id":       user.ID,
+			"email":    user.Email,
+			"fullName": user.FullName,
+			"role":     user.Role,
+			"tenantId": user.TenantId,
+		},
 	})
 }
 

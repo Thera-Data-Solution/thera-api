@@ -6,19 +6,12 @@ import (
 	"os"
 	"strconv"
 	"thera-api/models"
-	"thera-api/repository"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type AuthController struct {
-	UserRepo       *repository.UserRepository
-	TenantUserRepo *repository.TenantUserRepository
-	SessionRepo    *repository.SessionRepository
-}
 
 func (ac *AuthController) UserRegister(c *gin.Context) {
 	type input struct {
@@ -30,6 +23,11 @@ func (ac *AuthController) UserRegister(c *gin.Context) {
 	var r input
 	if err := c.ShouldBindJSON(&r); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		return
+	}
+
+	if r.TenantId == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid input"})
 		return
 	}
 

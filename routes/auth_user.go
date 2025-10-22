@@ -11,8 +11,8 @@ func UserRoutes(r *gin.Engine, ac *controllers.AuthController) {
 	auth := r.Group("/api/auth")
 
 	{
-		auth.POST("/register", ac.AdminRegister)
-		auth.POST("/login", ac.AdminLogin)
+		auth.POST("/register", ac.UserRegister)
+		auth.POST("/login", ac.UserLogin)
 	}
 
 	protected := r.Group("")

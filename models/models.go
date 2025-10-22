@@ -38,3 +38,10 @@ type Session struct {
 	ExpiresAt    string  `json:"expiresAt"`
 	TenantId     *string `json:"tenantId,omitempty"`
 }
+
+type Tenant struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Logo     *string `json:"logo,omitempty"`
+	IsActive bool    `json:"isActive"`
+}

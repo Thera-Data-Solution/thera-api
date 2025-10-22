@@ -22,7 +22,7 @@ func (r *SessionRepository) DeleteByTenantUserId(tenantUserId string) error {
 	return err
 }
 
-func (r *SessionRepository) FindByToken(token string) (*models.Session, error) {
+func (r *SessionRepository) FindSessionByToken(token string) (*models.Session, error) {
 	query := `SELECT id, "userId", "tenantUserId", token, device, ip, "expiresAt", "tenantId" FROM "Session" WHERE token=$1 LIMIT 1`
 	row := r.DB.QueryRow(query, token)
 	var s models.Session

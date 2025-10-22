@@ -19,13 +19,24 @@ func main() {
 	}
 
 	config.ConnectDatabase()
+	config.ConnectDatabase()
+
+	if config.DB == nil {
+		log.Fatal("❌ DB masih nil setelah ConnectDatabase()")
+	} else {
+		log.Println("✅ DB aktif di main.go")
+	}
 
 	tenantUserRepo := &repository.TenantUserRepository{DB: config.DB}
 	sessionRepo := &repository.SessionRepository{DB: config.DB}
+	userRepo := &repository.UserRepository{DB: config.DB}
+	tenantRepo := &repository.TenantRepo{DB: config.DB}
 
 	authController := &controllers.AuthController{
 		TenantUserRepo: tenantUserRepo,
+		TenantRepo:     tenantRepo,
 		SessionRepo:    sessionRepo,
+		UserRepo:       userRepo,
 	}
 
 	r := routes.SetupRoutes(authController)
