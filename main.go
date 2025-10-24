@@ -1,46 +1,31 @@
-// main.go (Versi Gin)
 package main
 
 import (
-	"log"
-	"net/http"
 	"thera-api/config"
-	"thera-api/controllers"
-	"thera-api/repository"
+	initpkg "thera-api/init"
 	"thera-api/routes"
+	"time"
 
-	// Ganti import Echo
-	"github.com/joho/godotenv"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file, using system env")
-	}
-
-	config.ConnectDatabase()
 	config.ConnectDatabase()
 
-	if config.DB == nil {
-		log.Fatal("❌ DB masih nil setelah ConnectDatabase()")
-	} else {
-		log.Println("✅ DB aktif di main.go")
-	}
+	r := gin.Default()
 
-	tenantUserRepo := &repository.TenantUserRepository{DB: config.DB}
-	sessionRepo := &repository.SessionRepository{DB: config.DB}
-	userRepo := &repository.UserRepository{DB: config.DB}
-	tenantRepo := &repository.TenantRepo{DB: config.DB}
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // ganti sesuai origin frontend kamu
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Tenant-Id", "Token"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
-	authController := &controllers.AuthController{
-		TenantUserRepo: tenantUserRepo,
-		TenantRepo:     tenantRepo,
-		SessionRepo:    sessionRepo,
-		UserRepo:       userRepo,
-	}
+	container := initpkg.NewContainer()
+	routes.SetupRoutes(r, container)
 
-	r := routes.SetupRoutes(authController)
-
-	log.Println("🚀 Server berjalan di http://localhost:8080")
-	http.ListenAndServe(":8080", r)
+	r.Run(":8080")
 }
