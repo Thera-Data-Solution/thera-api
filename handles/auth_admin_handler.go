@@ -15,9 +15,9 @@ type AuthAdminHandler struct {
 func (h *AuthAdminHandler) Register(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
 	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=6"`
-		FullName string `json:"fullName" binding:"required"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		FullName string `json:"fullName"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
