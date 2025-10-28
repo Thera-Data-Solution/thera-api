@@ -2,18 +2,15 @@ package models
 
 import "time"
 
-// Tenant merepresentasikan model Tenant di database.
-// Menggunakan struct tag 'gorm:"column:..."' untuk pemetaan ke snake_case di DB jika diperlukan.
 type Tenant struct {
-	ID        string    `gorm:"primaryKey;column:id"`
-	Name      string    `gorm:"column:name"`
-	Logo      *string   `gorm:"column:logo"`
-	IsActive  bool      `gorm:"column:is_active"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
+	ID        string    `json:"id" gorm:"column:id"`
+	Name      string    `json:"name" gorm:"column:name"`
+	Logo      *string   `json:"logo,omitempty" gorm:"column:logo"`
+	IsActive  bool      `json:"isActive" gorm:"column:isActive"`
+	CreatedAt time.Time `json:"createdAt" gorm:"column:createdAt"`
+	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updatedAt"`
 }
 
-// TableName menentukan nama tabel di database.
 func (Tenant) TableName() string {
-	return "tenant" // Sesuaikan dengan nama tabel di DB
+	return "Tenant"
 }

@@ -13,11 +13,11 @@ type AuthUserHandler struct {
 }
 
 func (h *AuthUserHandler) Register(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
 	var req struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 		FullName string `json:"fullName"`
-		TenantId string `json:"tenantId"`
 		Phone    string `json:"phone"`
 		Ig       string `json:"ig"`
 		Fb       string `json:"fb"`
@@ -27,9 +27,15 @@ func (h *AuthUserHandler) Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+
 	}
 
-	session, err := h.Service.RegisterUser(req.Email, req.Password, req.FullName, req.Phone, req.Address, req.Ig, req.Fb, req.TenantId)
+	if tenantId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "error code 001"})
+		return
+	}
+
+	session, err := h.Service.RegisterUser(req.Email, req.Password, req.FullName, req.Phone, req.Address, req.Ig, req.Fb, tenantId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -42,17 +48,22 @@ func (h *AuthUserHandler) Register(c *gin.Context) {
 }
 
 func (h *AuthUserHandler) Login(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
 	var req struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
-		TenantId string `json:"tenantId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	session, err := h.Service.LoginUser(req.Email, req.Password, req.TenantId)
+	if tenantId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "error code 001"})
+		return
+	}
+
+	session, err := h.Service.LoginUser(req.Email, req.Password, tenantId)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
