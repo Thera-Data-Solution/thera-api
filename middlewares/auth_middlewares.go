@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 	"thera-api/repositories"
 
@@ -66,6 +67,7 @@ func (m *IsAuthMiddleware) Handle() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		fmt.Println(session)
 		c.Set("auth", gin.H{
 			"user":         user,
 			"session":      session,

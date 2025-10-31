@@ -12,6 +12,9 @@ func SetupRoutes(r *gin.Engine, c *initpkg.Container) {
 	// panggil file route lain
 	RegisterAuthRoutes(api, c)
 	RegisterTenantRoutes(api, c)
+	RegisterCategoriesRoutes(api, c)
+	RegisterSchedulesRoutes(api, c)
+	RegisterBookingRoutes(api, c)
 
 	// nanti kalau ada modul lain:
 	// RegisterEventRoutes(api, c)

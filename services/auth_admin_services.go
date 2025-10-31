@@ -14,6 +14,7 @@ import (
 type AuthAdminService struct {
 	AdminRepo   *repositories.TenantUserRepository
 	SessionRepo *repositories.SessionRepository
+	TenantRepo  *repositories.TenantRepository
 }
 
 func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId string) (*models.Session, error) {

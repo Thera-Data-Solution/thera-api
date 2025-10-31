@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"net/http"
-	"thera-api/models"
 	"thera-api/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthAdminHandler struct {
-	Service *services.AuthAdminService
+	Service       *services.AuthAdminService
+	TenantService *services.TenantService
 }
 
 func (h *AuthAdminHandler) Register(c *gin.Context) {
@@ -65,28 +65,4 @@ func (h *AuthAdminHandler) Login(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"token": session.Token})
-}
-
-func (h *AuthAdminHandler) Me(c *gin.Context) {
-	sessionVal, exists := c.Get("session")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "session tidak ditemukan"})
-		return
-	}
-	session := sessionVal.(*models.Session)
-
-	admin, err := h.Service.AdminRepo.FindByID(*session.TenantUserId)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "pengguna tidak ditemukan"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"id":       admin.ID,
-		"email":    admin.Email,
-		"fullName": admin.FullName,
-		"avatar":   admin.Avatar,
-		"role":     admin.Role,
-		"tenantId": admin.TenantId,
-	})
 }

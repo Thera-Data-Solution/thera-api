@@ -9,16 +9,18 @@ import (
 )
 
 type Container struct {
-	UserHandler   *handlers.AuthUserHandler
-	AdminHandler  *handlers.AuthAdminHandler
-	Middlewares   *middlewares.IsAuthMiddleware
-	AtLeastAdmin  *middlewares.IsAdminMiddleware
-	OnlySU        *middlewares.IsSUMiddleware
-	TenantHandler *handlers.TenantHandler
+	UserHandler     *handlers.AuthUserHandler
+	AdminHandler    *handlers.AuthAdminHandler
+	Middlewares     *middlewares.IsAuthMiddleware
+	AtLeastAdmin    *middlewares.IsAdminMiddleware
+	OnlySU          *middlewares.IsSUMiddleware
+	TenantHandler   *handlers.TenantHandler
+	CategoryHandler *handlers.CategoriesHandler
+	ScheduleHandler *handlers.SchedulesHandler
+	BookHandler     *handlers.BookedHandler
 }
 
 func NewContainer() *Container {
-	// koneksi DB (pastikan sudah connect di main.go)
 	db := config.DB
 
 	userRepo := &repositories.UserRepository{DB: db}
@@ -26,23 +28,23 @@ func NewContainer() *Container {
 	sessionRepo := &repositories.SessionRepository{DB: db}
 
 	tenantRepo := &repositories.TenantRepository{DB: db}
+	categoriesRepo := &repositories.CategoriesRepository{DB: db}
+	scheduleRepo := &repositories.SchedulesRepository{DB: db}
+	bookingRepo := &repositories.BookedRepository{DB: db}
 
-	authUserService := &services.AuthUserService{
-		UserRepo:    userRepo,
-		SessionRepo: sessionRepo,
-	}
-	authAdminService := &services.AuthAdminService{
-		AdminRepo:   adminRepo,
-		SessionRepo: sessionRepo,
-	}
-
-	tenantService := &services.TenantService{
-		TenantRepo: tenantRepo,
-	}
+	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo}
+	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo}
+	tenantService := &services.TenantService{TenantRepo: tenantRepo}
+	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
+	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
+	bookingService := &services.BookedService{BookingRepo: bookingRepo, ScheduleRepo: scheduleRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
 	tenantHandler := &handlers.TenantHandler{Service: tenantService}
+	categoryHandler := &handlers.CategoriesHandler{Service: categoryService}
+	scheduleHandler := &handlers.SchedulesHandler{Service: scheduleService}
+	bookHandler := &handlers.BookedHandler{Service: bookingService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -53,11 +55,14 @@ func NewContainer() *Container {
 	onlySUMiddleware := &middlewares.IsSUMiddleware{}
 
 	return &Container{
-		UserHandler:   userHandler,
-		AdminHandler:  adminHandler,
-		Middlewares:   authAdminMiddleware,
-		AtLeastAdmin:  atLeastAdminMiddleware,
-		TenantHandler: tenantHandler,
-		OnlySU:        onlySUMiddleware,
+		UserHandler:     userHandler,
+		AdminHandler:    adminHandler,
+		Middlewares:     authAdminMiddleware,
+		AtLeastAdmin:    atLeastAdminMiddleware,
+		TenantHandler:   tenantHandler,
+		OnlySU:          onlySUMiddleware,
+		CategoryHandler: categoryHandler,
+		ScheduleHandler: scheduleHandler,
+		BookHandler:     bookHandler,
 	}
 }

@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"thera-api/services"
+	"thera-api/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
 )
 
 type TenantHandler struct {
@@ -13,17 +17,26 @@ type TenantHandler struct {
 
 // POST /tenants
 func (h *TenantHandler) Create(c *gin.Context) {
-	var req struct {
-		Name string  `json:"name"`
-		Logo *string `json:"logo"`
+	name := c.PostForm("name")
+	file, fileHeader, err := c.Request.FormFile("logo")
+
+	var logoURL *string
+
+	if err == nil {
+		uploader, _ := utils.NewMinIOUploader()
+		url, err := uploader.UploadFile(c, file, fileHeader)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":  "gagal upload logo",
+				"detail": err.Error(), // tambahkan baris ini
+			})
+			return
+		}
+
+		logoURL = &url
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	tenant, err := h.Service.CreateTenant(req.Name, req.Logo)
+	tenant, err := h.Service.CreateTenant(name, logoURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -55,17 +68,45 @@ func (h *TenantHandler) GetByID(c *gin.Context) {
 
 func (h *TenantHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var req struct {
-		Name     *string `json:"name"`
-		Logo     *string `json:"logo"`
-		IsActive *bool   `json:"isActive"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+
+	// Bind form-data karena kita bisa dapat file di multipart
+	name := c.PostForm("name")
+	isActiveStr := c.PostForm("isActive")
+
+	var isActive *bool
+	if isActiveStr != "" {
+		val := isActiveStr == "true"
+		isActive = &val
 	}
 
-	tenant, err := h.Service.UpdateTenant(id, req.Name, req.Logo, req.IsActive)
+	var logoURL *string
+
+	// Cek apakah ada file logo yang diupload
+	file, fileHeader, err := c.Request.FormFile("logo")
+	if err == nil {
+		// Upload file baru
+		uploader, _ := utils.NewMinIOUploader()
+		url, err := uploader.UploadFile(c, file, fileHeader)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":  "gagal upload logo",
+				"detail": err.Error(),
+			})
+			return
+		}
+		logoURL = &url
+
+		// Hapus logo lama jika ada
+		oldTenant, _ := h.Service.GetTenantByID(id)
+		if oldTenant != nil && oldTenant.Logo != nil && *oldTenant.Logo != "" {
+			// Extract object name dari URL
+			oldObject := strings.TrimPrefix(*oldTenant.Logo, fmt.Sprintf("%s/%s/", strings.TrimRight(uploader.Endpoint, "/"), uploader.BucketName))
+			_ = uploader.Client.RemoveObject(c, uploader.BucketName, oldObject, minio.RemoveObjectOptions{})
+		}
+	}
+
+	// Update tenant
+	tenant, err := h.Service.UpdateTenant(id, &name, logoURL, isActive)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
