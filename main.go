@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"thera-api/config"
 	initpkg "thera-api/init"
 	"thera-api/routes"
@@ -27,5 +28,10 @@ func main() {
 	container := initpkg.NewContainer()
 	routes.SetupRoutes(r, container)
 
-	r.Run(":8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	r.Run("0.0.0.0:" + port)
 }

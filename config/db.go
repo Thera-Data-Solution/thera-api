@@ -13,24 +13,26 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// Coba load .env secara opsional
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️  No .env file found, using environment variables from system")
 	}
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		log.Fatal("DATABASE_URL not found in .env")
+		log.Fatal("❌ DATABASE_URL not found in environment")
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
-			NoLowerCase:   true, // penting: biar camelCase, bukan snake_case
+			NoLowerCase:   true,
 		},
 	})
 	if err != nil {
-		log.Fatal("failed to connect database:", err)
+		log.Fatal("❌ failed to connect database:", err)
 	}
 
 	DB = db
+	log.Println("✅ Database connected successfully")
 }
