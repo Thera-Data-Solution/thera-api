@@ -2,7 +2,7 @@ package init
 
 import (
 	"thera-api/config"
-	handlers "thera-api/handles"
+	"thera-api/handlers"
 	"thera-api/middlewares"
 	"thera-api/repositories"
 	"thera-api/services"
@@ -18,6 +18,7 @@ type Container struct {
 	CategoryHandler *handlers.CategoriesHandler
 	ScheduleHandler *handlers.SchedulesHandler
 	BookHandler     *handlers.BookedHandler
+	HeroHandler     *handlers.HeroHandler
 }
 
 func NewContainer() *Container {
@@ -31,6 +32,7 @@ func NewContainer() *Container {
 	categoriesRepo := &repositories.CategoriesRepository{DB: db}
 	scheduleRepo := &repositories.SchedulesRepository{DB: db}
 	bookingRepo := &repositories.BookedRepository{DB: db}
+	heroRepo := &repositories.HeroRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo}
@@ -38,6 +40,7 @@ func NewContainer() *Container {
 	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
 	bookingService := &services.BookedService{BookingRepo: bookingRepo, ScheduleRepo: scheduleRepo}
+	heroService := &services.HeroService{Repo: heroRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -45,6 +48,7 @@ func NewContainer() *Container {
 	categoryHandler := &handlers.CategoriesHandler{Service: categoryService}
 	scheduleHandler := &handlers.SchedulesHandler{Service: scheduleService}
 	bookHandler := &handlers.BookedHandler{Service: bookingService}
+	heroHandler := &handlers.HeroHandler{Service: heroService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -64,5 +68,6 @@ func NewContainer() *Container {
 		CategoryHandler: categoryHandler,
 		ScheduleHandler: scheduleHandler,
 		BookHandler:     bookHandler,
+		HeroHandler:     heroHandler,
 	}
 }
