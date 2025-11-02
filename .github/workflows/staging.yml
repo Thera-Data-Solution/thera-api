@@ -32,7 +32,7 @@ jobs:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository }}:latest
+          IMAGE_NAME=ghcr.io/thera-data-solution/thera-api:latest
           echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USERNAME --password-stdin
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
@@ -41,7 +41,7 @@ jobs:
         env:
           KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository }}:latest
+          IMAGE_NAME=ghcr.io/thera-data-solution/thera-api:latest
           curl -X POST https://app.koyeb.com/v1/apps/<APP_ID>/deployments \
             -H "Authorization: Bearer $KOYEB_TOKEN" \
             -H "Content-Type: application/json" \
