@@ -4,15 +4,18 @@ import (
 	"os"
 	"thera-api/config"
 	initpkg "thera-api/init"
+	"thera-api/logger"
 	"thera-api/migrate"
 	"thera-api/routes"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
+	logger.Init()
 	config.ConnectDatabase()
 	migrate.RunMigrations()
 
@@ -34,6 +37,6 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-
+	logger.Log.Info("Server running", zap.String("port", port))
 	r.Run("0.0.0.0:" + port)
 }
