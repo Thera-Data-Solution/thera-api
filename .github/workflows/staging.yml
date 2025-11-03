@@ -42,7 +42,7 @@ jobs:
           KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
         run: |
           IMAGE_NAME=ghcr.io/thera-data-solution/thera-api:latest
-          curl -X POST https://app.koyeb.com/v1/services/ef64f8f9-6f0b-4d80-a4bd-6074948f67a6/redeploy \
+          curl -X POST https://app.koyeb.com/v1/services/04d1dace-9cf1-4d72-bf66-176e3c771b9a/redeploy \
             -H "Authorization: Bearer $KOYEB_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"deployment_group":"","sha":"","use_cache":false,"skip_build": false}'
