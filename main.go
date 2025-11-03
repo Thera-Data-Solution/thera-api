@@ -4,6 +4,7 @@ import (
 	"os"
 	"thera-api/config"
 	initpkg "thera-api/init"
+	"thera-api/migrate"
 	"thera-api/routes"
 	"time"
 
@@ -13,13 +14,14 @@ import (
 
 func main() {
 	config.ConnectDatabase()
+	migrate.RunMigrations()
 
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // ganti sesuai origin frontend kamu
+		AllowOrigins:     []string{"http://localhost:5173", "https://staging.theravickya.com"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Tenant-Id", "Token"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "X-Tenant-Id", "Token"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,

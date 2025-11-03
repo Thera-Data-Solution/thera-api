@@ -6,7 +6,6 @@ import (
 
 	"thera-api/models"
 	"thera-api/repositories"
-	"thera-api/utils"
 )
 
 type BookedService struct {
@@ -41,7 +40,6 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string) error
 
 	// 4️⃣ Buat booking baru
 	booked := &models.Booked{
-		ID:         utils.GenerateID(),
 		UserId:     userId,
 		ScheduleId: scheduleId,
 		BookedAt:   time.Now(),

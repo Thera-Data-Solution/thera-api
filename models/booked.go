@@ -3,13 +3,9 @@ package models
 import "time"
 
 type Booked struct {
-	ID         string    `json:"id" gorm:"column:id"`
-	UserId     string    `json:"userId" gorm:"column:userId"`
-	ScheduleId string    `json:"scheduleId" gorm:"column:scheduleId"`
-	BookedAt   time.Time `json:"bookedAt" gorm:"column:bookedAt"`
-	TenantId   *string   `json:"tenantId,omitempty" gorm:"column:tenantId"`
-}
-
-func (Booked) TableName() string {
-	return "Booked"
+	ID         string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserId     string    `json:"userId" gorm:"not null;index"`
+	ScheduleId string    `json:"scheduleId" gorm:"not null;index"`
+	BookedAt   time.Time `json:"bookedAt" gorm:"autoCreateTime"`
+	TenantId   *string   `json:"tenantId,omitempty" gorm:"index"`
 }

@@ -3,7 +3,6 @@ package services
 import (
 	"thera-api/models"
 	"thera-api/repositories"
-	"thera-api/utils"
 	"time"
 )
 
@@ -21,7 +20,6 @@ func (s *SchedulesService) GetScheduleByID(id string, tenantId string) (*models.
 
 func (s *SchedulesService) CreateSchedule(dateTime time.Time, categoryId, status string, tenantId string) (*models.Schedules, error) {
 	schedule := &models.Schedules{
-		ID:         utils.GenerateID(),
 		DateTime:   dateTime,
 		CategoryId: categoryId,
 		Status:     status,

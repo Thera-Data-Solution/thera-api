@@ -3,16 +3,12 @@ package models
 import "time"
 
 type Link struct {
-	ID        string    `json:"id" gorm:"column:id"`
-	Name      string    `json:"name" gorm:"column:name"`
-	Value     string    `json:"value" gorm:"column:value"`
-	Type      string    `json:"type" gorm:"column:type"`
-	Icon      *string   `json:"icon,omitempty" gorm:"column:icon"`
-	Order     *int      `json:"order,omitempty" gorm:"column:order"`
-	CreatedAt time.Time `json:"createdAt" gorm:"column:createdAt"`
-	TenantId  *string   `json:"tenantId,omitempty" gorm:"column:tenantId"`
-}
-
-func (Link) TableName() string {
-	return "Link"
+	ID        string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	Name      string    `json:"name" gorm:"not null"`
+	Value     string    `json:"value" gorm:"not null"`
+	Type      string    `json:"type" gorm:"not null"`
+	Icon      *string   `json:"icon,omitempty"`
+	Order     *int      `json:"order,omitempty"`
+	CreatedAt time.Time `json:"createdAt" gorm:"autoCreateTime"`
+	TenantId  *string   `json:"tenantId,omitempty" gorm:"index"`
 }

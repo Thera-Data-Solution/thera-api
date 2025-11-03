@@ -12,7 +12,7 @@ type TenantUserRepository struct {
 
 func (r *TenantUserRepository) FindByEmailAndTenant(email, tenantId string) (*models.TenantUser, error) {
 	var u models.TenantUser
-	err := r.DB.Where(`email = ? AND "tenantId" = ?`, email, tenantId).First(&u).Error
+	err := r.DB.Where(`email = ? AND tenant_id = ?`, email, tenantId).First(&u).Error
 	return &u, err
 }
 

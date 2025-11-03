@@ -1,14 +1,10 @@
 package models
 
 type Translation struct {
-	ID        string  `json:"id" gorm:"column:id"`
-	Locale    string  `json:"locale" gorm:"column:locale"`
-	Namespace string  `json:"namespace" gorm:"column:namespace"`
-	Key       string  `json:"key" gorm:"column:key"`
-	Value     string  `json:"value" gorm:"column:value"`
-	TenantId  *string `json:"tenantId,omitempty" gorm:"column:tenantId"`
-}
-
-func (Translation) TableName() string {
-	return "Translation"
+	ID        string  `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	Locale    string  `json:"locale" gorm:"not null;index:idx_locale_namespace_key,unique"`
+	Namespace string  `json:"namespace" gorm:"not null;index:idx_locale_namespace_key,unique"`
+	Key       string  `json:"key" gorm:"not null;index:idx_locale_namespace_key,unique"`
+	Value     string  `json:"value" gorm:"not null"`
+	TenantId  *string `json:"tenantId,omitempty" gorm:"index"`
 }
