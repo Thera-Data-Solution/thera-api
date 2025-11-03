@@ -19,6 +19,7 @@ type Container struct {
 	ScheduleHandler *handlers.SchedulesHandler
 	BookHandler     *handlers.BookedHandler
 	HeroHandler     *handlers.HeroHandler
+	LinkHandler     *handlers.LinkHandler
 }
 
 func NewContainer() *Container {
@@ -33,6 +34,7 @@ func NewContainer() *Container {
 	scheduleRepo := &repositories.SchedulesRepository{DB: db}
 	bookingRepo := &repositories.BookedRepository{DB: db}
 	heroRepo := &repositories.HeroRepository{DB: db}
+	linkRepo := &repositories.LinkRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -41,6 +43,7 @@ func NewContainer() *Container {
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
 	bookingService := &services.BookedService{BookingRepo: bookingRepo, ScheduleRepo: scheduleRepo}
 	heroService := &services.HeroService{Repo: heroRepo}
+	linkService := &services.LinkService{Repo: linkRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -49,6 +52,7 @@ func NewContainer() *Container {
 	scheduleHandler := &handlers.SchedulesHandler{Service: scheduleService}
 	bookHandler := &handlers.BookedHandler{Service: bookingService}
 	heroHandler := &handlers.HeroHandler{Service: heroService}
+	linkHandler := &handlers.LinkHandler{Service: linkService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -69,5 +73,6 @@ func NewContainer() *Container {
 		ScheduleHandler: scheduleHandler,
 		BookHandler:     bookHandler,
 		HeroHandler:     heroHandler,
+		LinkHandler:     linkHandler,
 	}
 }

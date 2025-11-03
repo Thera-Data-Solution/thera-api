@@ -14,4 +14,5 @@ func SetupRoutes(r *gin.Engine, c *initpkg.Container) {
 	RegisterSchedulesRoutes(api, c)
 	RegisterBookingRoutes(api, c)
 	RegisterHeroRoutes(api, c)
+	RegisterLinkRoutes(api, c)
 }
