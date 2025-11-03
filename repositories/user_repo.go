@@ -12,13 +12,13 @@ type UserRepository struct {
 
 func (r *UserRepository) FindByEmailAndTenant(email, tenantId string) (*models.User, error) {
 	var user models.User
-	err := r.DB.Where(`email = ? AND "tenantId" = ?`, email, tenantId).First(&user).Error
+	err := r.DB.Where(`email = ? AND tenant_id = ?`, email, tenantId).First(&user).Error
 	return &user, err
 }
 
 func (r *UserRepository) FindByPhoneAndTenant(phone, tenantId string) (*models.User, error) {
 	var user models.User
-	err := r.DB.Where(`phone = ? AND "tenantId" = ?`, phone, tenantId).First(&user).Error
+	err := r.DB.Where(`phone = ? AND tenant_id = ?`, phone, tenantId).First(&user).Error
 	return &user, err
 }
 

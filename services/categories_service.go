@@ -3,7 +3,6 @@ package services
 import (
 	"thera-api/models"
 	"thera-api/repositories"
-	"thera-api/utils"
 )
 
 type CategoriesService struct {
@@ -34,7 +33,6 @@ func (s *CategoriesService) CreateCategory(
 	tenantId *string,
 ) (*models.Categories, error) {
 	category := &models.Categories{
-		ID:             utils.GenerateID(),
 		Name:           name,
 		Description:    description,
 		DescriptionEn:  descriptionEn,

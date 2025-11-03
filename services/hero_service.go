@@ -4,8 +4,6 @@ import (
 	"errors"
 	"thera-api/models"
 	"thera-api/repositories"
-
-	"github.com/google/uuid"
 )
 
 type HeroService struct {
@@ -24,7 +22,6 @@ func (s *HeroService) CreateHero(
 	}
 
 	hero := &models.Hero{
-		ID:          uuid.NewString(),
 		Title:       title,
 		Subtitle:    subtitle,
 		Description: description,

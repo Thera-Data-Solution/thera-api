@@ -16,13 +16,13 @@ func (r *CategoriesRepository) Create(category *models.Categories) error {
 
 func (r *CategoriesRepository) FindAll(tenant string) ([]models.Categories, error) {
 	var categories []models.Categories
-	err := r.DB.Where(`"tenantId" = ?`, tenant).Find(&categories).Error
+	err := r.DB.Where(`tenant_id = ?`, tenant).Find(&categories).Error
 	return categories, err
 }
 
 func (r *CategoriesRepository) FindByID(id string, tenant string) (*models.Categories, error) {
 	var category models.Categories
-	err := r.DB.First(&category, `id = ? AND "tenantId" = ?`, id, tenant).Error
+	err := r.DB.First(&category, `id = ? AND tenant_id = ?`, id, tenant).Error
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (r *CategoriesRepository) FindByID(id string, tenant string) (*models.Categ
 
 func (r *CategoriesRepository) FindByIDAndTenant(id string, tenant string) (*models.Categories, error) {
 	var category models.Categories
-	err := r.DB.First(&category, `id = ? AND "tenantId" = ?`, id, tenant).Error
+	err := r.DB.First(&category, `id = ? AND tenant_id = ?`, id, tenant).Error
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +40,11 @@ func (r *CategoriesRepository) FindByIDAndTenant(id string, tenant string) (*mod
 
 func (r *CategoriesRepository) Update(category *models.Categories) error {
 	return r.DB.
-		Where(`id = ? AND "tenantId" = ?`, category.ID, category.TenantId).
+		Where(`id = ? AND tenant_id = ?`, category.ID, category.TenantId).
 		Save(category).
 		Error
 }
 
 func (r *CategoriesRepository) Delete(id string, tenantId string) error {
-	return r.DB.Delete(&models.Categories{}, `id = ? AND "tenantId" = ?`, id, tenantId).Error
+	return r.DB.Delete(&models.Categories{}, `id = ? AND tenant_id = ?`, id, tenantId).Error
 }

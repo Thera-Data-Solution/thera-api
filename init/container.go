@@ -34,8 +34,8 @@ func NewContainer() *Container {
 	bookingRepo := &repositories.BookedRepository{DB: db}
 	heroRepo := &repositories.HeroRepository{DB: db}
 
-	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo}
-	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo}
+	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
+	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	tenantService := &services.TenantService{TenantRepo: tenantRepo}
 	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}

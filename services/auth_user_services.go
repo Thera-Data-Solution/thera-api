@@ -14,6 +14,7 @@ import (
 type AuthUserService struct {
 	UserRepo    *repositories.UserRepository
 	SessionRepo *repositories.SessionRepository
+	TenantRepo  *repositories.TenantRepository
 }
 
 func (s *AuthUserService) RegisterUser(
@@ -26,6 +27,10 @@ func (s *AuthUserService) RegisterUser(
 	fb,
 	tenantId string,
 ) (*models.Session, error) {
+	_, err := s.TenantRepo.FindByID(tenantId)
+	if err != nil {
+		return nil, errors.New("tenant tidak ditemukan")
+	}
 	if fullName == "" {
 		return nil, errors.New("nama lengkap wajib diisi")
 	}
@@ -59,7 +64,6 @@ func (s *AuthUserService) RegisterUser(
 	}
 
 	user := models.User{
-		ID:       uuid.New().String(),
 		Email:    email,
 		Password: string(hashed),
 		FullName: fullName,
@@ -78,7 +82,6 @@ func (s *AuthUserService) RegisterUser(
 	// otomatis login => buat token session
 	token := uuid.NewString()
 	session := &models.Session{
-		ID:        uuid.New().String(),
 		Token:     token,
 		UserId:    &user.ID,
 		TenantId:  tenantId,
@@ -104,7 +107,6 @@ func (s *AuthUserService) LoginUser(email, password, tenantId string) (*models.S
 	}
 
 	session := &models.Session{
-		ID:        uuid.New().String(),
 		Token:     uuid.New().String(),
 		UserId:    &user.ID,
 		TenantId:  user.TenantId,

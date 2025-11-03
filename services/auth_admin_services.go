@@ -18,6 +18,11 @@ type AuthAdminService struct {
 }
 
 func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId string) (*models.Session, error) {
+	_, err := s.TenantRepo.FindByID(tenantId)
+	if err != nil {
+		return nil, errors.New("tenant tidak ditemukan")
+	}
+
 	existing, _ := s.AdminRepo.FindByEmailAndTenant(email, tenantId)
 	if existing.ID != "" {
 		return nil, errors.New("pengguna dengan email tersebut sudah terdaftar")
@@ -37,7 +42,6 @@ func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId str
 	}
 
 	admin := models.TenantUser{
-		ID:       uuid.New().String(),
 		Email:    email,
 		Password: string(hashed),
 		FullName: fullName,
@@ -54,7 +58,6 @@ func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId str
 	// otomatis login => buat token session
 	token := uuid.NewString()
 	session := &models.Session{
-		ID:           uuid.New().String(),
 		Token:        token,
 		TenantUserId: &admin.ID,
 		TenantId:     tenantId,
@@ -84,7 +87,6 @@ func (s *AuthAdminService) LoginAdmin(email, password, tenantId string) (*models
 	}
 
 	session := &models.Session{
-		ID:           uuid.New().String(),
 		Token:        uuid.New().String(),
 		TenantUserId: &admin.ID,
 		TenantId:     admin.TenantId,
