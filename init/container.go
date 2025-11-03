@@ -20,6 +20,7 @@ type Container struct {
 	BookHandler     *handlers.BookedHandler
 	HeroHandler     *handlers.HeroHandler
 	LinkHandler     *handlers.LinkHandler
+	ArticleHandler  *handlers.ArticleHandler
 }
 
 func NewContainer() *Container {
@@ -35,6 +36,7 @@ func NewContainer() *Container {
 	bookingRepo := &repositories.BookedRepository{DB: db}
 	heroRepo := &repositories.HeroRepository{DB: db}
 	linkRepo := &repositories.LinkRepository{DB: db}
+	articleRepo := &repositories.ArticleRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -44,6 +46,7 @@ func NewContainer() *Container {
 	bookingService := &services.BookedService{BookingRepo: bookingRepo, ScheduleRepo: scheduleRepo}
 	heroService := &services.HeroService{Repo: heroRepo}
 	linkService := &services.LinkService{Repo: linkRepo}
+	articleService := &services.ArticleService{Repo: articleRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -53,6 +56,7 @@ func NewContainer() *Container {
 	bookHandler := &handlers.BookedHandler{Service: bookingService}
 	heroHandler := &handlers.HeroHandler{Service: heroService}
 	linkHandler := &handlers.LinkHandler{Service: linkService}
+	articleHandler := &handlers.ArticleHandler{Service: articleService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -74,5 +78,6 @@ func NewContainer() *Container {
 		BookHandler:     bookHandler,
 		HeroHandler:     heroHandler,
 		LinkHandler:     linkHandler,
+		ArticleHandler:  articleHandler,
 	}
 }
