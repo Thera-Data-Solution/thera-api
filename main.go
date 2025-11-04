@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"thera-api/config"
 	initpkg "thera-api/init"
 	"thera-api/logger"
 	"thera-api/migrate"
 	"thera-api/routes"
-	"time"
+	"time" // Import time untuk MaxAge
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,16 +20,26 @@ func main() {
 	config.ConnectDatabase()
 	migrate.RunMigrations()
 
-	r := gin.Default()
+	r := gin.New()
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
+	r.HandleMethodNotAllowed = true
+	r.Use(gin.Recovery(), gin.Logger())
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://staging.theravickya.com", "https://staging.admin.theravickya.com", "https://theravickya.com", "https://admin.theravickya.com"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "X-Tenant-Id", "Token"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		AllowOrigins:  []string{"*"},
+		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:  []string{"*"}, // Mengaktifkan lagi header * untuk lebih aman
+		ExposeHeaders: []string{"Content-Length"},
+		MaxAge:        12 * time.Hour,
 	}))
+	fmt.Println(r.Routes())
+
+	// <<< Tambahkan rute test ini >>>
+	r.GET("/cors-test", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "CORS test successful!"})
+	})
+	// <<< Akhir penambahan >>>
 
 	container := initpkg.NewContainer()
 	routes.SetupRoutes(r, container)

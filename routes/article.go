@@ -9,10 +9,10 @@ import (
 func RegisterArticleRoutes(router *gin.RouterGroup, c *initpkg.Container) {
 	articles := router.Group("/articles")
 	{
-		articles.GET("/", c.ArticleHandler.GetAll)
+		articles.GET("", c.ArticleHandler.GetAll)
 		articles.GET("/:id", c.ArticleHandler.GetByID)
 
-		articles.POST("/", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.ArticleHandler.Create)
+		articles.POST("", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.ArticleHandler.Create)
 		articles.PUT("/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.ArticleHandler.Update)
 		articles.DELETE("/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.ArticleHandler.Delete)
 	}
