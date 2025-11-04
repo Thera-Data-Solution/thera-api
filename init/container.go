@@ -21,6 +21,7 @@ type Container struct {
 	HeroHandler     *handlers.HeroHandler
 	LinkHandler     *handlers.LinkHandler
 	ArticleHandler  *handlers.ArticleHandler
+	GalleryHandler  *handlers.GalleryHandler
 }
 
 func NewContainer() *Container {
@@ -57,6 +58,7 @@ func NewContainer() *Container {
 	heroHandler := &handlers.HeroHandler{Service: heroService}
 	linkHandler := &handlers.LinkHandler{Service: linkService}
 	articleHandler := &handlers.ArticleHandler{Service: articleService}
+	galleryHandler := &handlers.GalleryHandler{Service: categoryService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -79,5 +81,6 @@ func NewContainer() *Container {
 		HeroHandler:     heroHandler,
 		LinkHandler:     linkHandler,
 		ArticleHandler:  articleHandler,
+		GalleryHandler:  galleryHandler,
 	}
 }
