@@ -38,6 +38,7 @@ func NewContainer() *Container {
 	heroRepo := &repositories.HeroRepository{DB: db}
 	linkRepo := &repositories.LinkRepository{DB: db}
 	articleRepo := &repositories.ArticleRepository{DB: db}
+	galleryRepo := &repositories.GalleryRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -48,6 +49,7 @@ func NewContainer() *Container {
 	heroService := &services.HeroService{Repo: heroRepo}
 	linkService := &services.LinkService{Repo: linkRepo}
 	articleService := &services.ArticleService{Repo: articleRepo}
+	galleryService := &services.GalleryService{GalleryRepo: galleryRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -58,7 +60,7 @@ func NewContainer() *Container {
 	heroHandler := &handlers.HeroHandler{Service: heroService}
 	linkHandler := &handlers.LinkHandler{Service: linkService}
 	articleHandler := &handlers.ArticleHandler{Service: articleService}
-	galleryHandler := &handlers.GalleryHandler{Service: categoryService}
+	galleryHandler := &handlers.GalleryHandler{Service: galleryService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
