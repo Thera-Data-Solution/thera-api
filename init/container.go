@@ -9,19 +9,20 @@ import (
 )
 
 type Container struct {
-	UserHandler     *handlers.AuthUserHandler
-	AdminHandler    *handlers.AuthAdminHandler
-	Middlewares     *middlewares.IsAuthMiddleware
-	AtLeastAdmin    *middlewares.IsAdminMiddleware
-	OnlySU          *middlewares.IsSUMiddleware
-	TenantHandler   *handlers.TenantHandler
-	CategoryHandler *handlers.CategoriesHandler
-	ScheduleHandler *handlers.SchedulesHandler
-	BookHandler     *handlers.BookedHandler
-	HeroHandler     *handlers.HeroHandler
-	LinkHandler     *handlers.LinkHandler
-	ArticleHandler  *handlers.ArticleHandler
-	GalleryHandler  *handlers.GalleryHandler
+	UserHandler        *handlers.AuthUserHandler
+	AdminHandler       *handlers.AuthAdminHandler
+	Middlewares        *middlewares.IsAuthMiddleware
+	AtLeastAdmin       *middlewares.IsAdminMiddleware
+	OnlySU             *middlewares.IsSUMiddleware
+	TenantHandler      *handlers.TenantHandler
+	CategoryHandler    *handlers.CategoriesHandler
+	ScheduleHandler    *handlers.SchedulesHandler
+	BookHandler        *handlers.BookedHandler
+	HeroHandler        *handlers.HeroHandler
+	LinkHandler        *handlers.LinkHandler
+	ArticleHandler     *handlers.ArticleHandler
+	GalleryHandler     *handlers.GalleryHandler
+	TranslationHandler *handlers.TranslationHandler
 }
 
 func NewContainer() *Container {
@@ -39,6 +40,7 @@ func NewContainer() *Container {
 	linkRepo := &repositories.LinkRepository{DB: db}
 	articleRepo := &repositories.ArticleRepository{DB: db}
 	galleryRepo := &repositories.GalleryRepository{DB: db}
+	translateRepo := &repositories.TranslationRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -50,6 +52,7 @@ func NewContainer() *Container {
 	linkService := &services.LinkService{Repo: linkRepo}
 	articleService := &services.ArticleService{Repo: articleRepo}
 	galleryService := &services.GalleryService{GalleryRepo: galleryRepo}
+	translateService := &services.TranslationService{Repo: translateRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -61,6 +64,7 @@ func NewContainer() *Container {
 	linkHandler := &handlers.LinkHandler{Service: linkService}
 	articleHandler := &handlers.ArticleHandler{Service: articleService}
 	galleryHandler := &handlers.GalleryHandler{Service: galleryService}
+	translateHandler := &handlers.TranslationHandler{Service: translateService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -71,18 +75,19 @@ func NewContainer() *Container {
 	onlySUMiddleware := &middlewares.IsSUMiddleware{}
 
 	return &Container{
-		UserHandler:     userHandler,
-		AdminHandler:    adminHandler,
-		Middlewares:     authAdminMiddleware,
-		AtLeastAdmin:    atLeastAdminMiddleware,
-		TenantHandler:   tenantHandler,
-		OnlySU:          onlySUMiddleware,
-		CategoryHandler: categoryHandler,
-		ScheduleHandler: scheduleHandler,
-		BookHandler:     bookHandler,
-		HeroHandler:     heroHandler,
-		LinkHandler:     linkHandler,
-		ArticleHandler:  articleHandler,
-		GalleryHandler:  galleryHandler,
+		UserHandler:        userHandler,
+		AdminHandler:       adminHandler,
+		Middlewares:        authAdminMiddleware,
+		AtLeastAdmin:       atLeastAdminMiddleware,
+		TenantHandler:      tenantHandler,
+		OnlySU:             onlySUMiddleware,
+		CategoryHandler:    categoryHandler,
+		ScheduleHandler:    scheduleHandler,
+		BookHandler:        bookHandler,
+		HeroHandler:        heroHandler,
+		LinkHandler:        linkHandler,
+		ArticleHandler:     articleHandler,
+		GalleryHandler:     galleryHandler,
+		TranslationHandler: translateHandler,
 	}
 }

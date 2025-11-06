@@ -17,4 +17,5 @@ func SetupRoutes(r *gin.Engine, c *initpkg.Container) {
 	RegisterLinkRoutes(api, c)
 	RegisterArticleRoutes(api, c)
 	RegisterGalleryRoutes(api, c)
+	RegisterTranslationRoutes(api, c)
 }
