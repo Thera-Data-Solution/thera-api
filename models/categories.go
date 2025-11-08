@@ -17,4 +17,6 @@ type Categories struct {
 	IsManual       bool     `json:"isManual" gorm:"default:false"`
 	Disable        bool     `json:"disable" gorm:"default:false"`
 	TenantId       *string  `json:"tenantId,omitempty" gorm:"index"`
+
+	Schedules []Schedules `json:"schedules,omitempty" gorm:"foreignKey:CategoryId"`
 }

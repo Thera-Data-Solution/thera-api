@@ -8,4 +8,6 @@ type Schedules struct {
 	CategoryId string    `json:"categoryId" gorm:"not null;index"`
 	Status     string    `json:"status" gorm:"not null"`
 	TenantId   *string   `json:"tenantId,omitempty" gorm:"index"`
+
+	Categories Categories `json:"categories" gorm:"foreignKey:CategoryId;references:ID"`
 }

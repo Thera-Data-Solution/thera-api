@@ -16,7 +16,10 @@ func (r *SchedulesRepository) Create(schedule *models.Schedules) error {
 
 func (r *SchedulesRepository) FindAll(tenantId string) ([]models.Schedules, error) {
 	var schedules []models.Schedules
-	err := r.DB.Where(`tenant_id = ?`, tenantId).Find(&schedules).Error
+	err := r.DB.
+		Preload("Categories").
+		Where(`tenant_id = ?`, tenantId).
+		Find(&schedules).Error
 	return schedules, err
 }
 
