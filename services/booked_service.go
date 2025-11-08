@@ -58,13 +58,12 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string) error
 	return nil
 }
 
-func (s *BookedService) GetAll(tenantId string) ([]models.Booked, error) {
-	bookings, err := s.BookingRepo.GetAll(tenantId)
+func (s *BookedService) GetAll(tenantId string, limit, offset int) ([]models.Booked, int64, error) {
+	bookings, total, err := s.BookingRepo.GetAll(tenantId, limit, offset)
 	if err != nil {
-		logger.Log.Error("Gagal fetch booking", zap.String("tenantId", tenantId), zap.Error(err))
-		return nil, err
+		return nil, 0, err
 	}
-	return bookings, nil
+	return bookings, total, nil
 }
 
 func (s *BookedService) GetByUser(tenantId string, userId string) ([]models.Booked, error) {
@@ -94,11 +93,36 @@ func (s *BookedService) Update(booked *models.Booked) error {
 	return nil
 }
 
-func (s *BookedService) Delete(id string, tenantId string) error {
-	if err := s.BookingRepo.Delete(id, tenantId); err != nil {
-		logger.Log.Error("Gagal delete booking", zap.String("bookingId", id), zap.Error(err))
+func (s *BookedService) Cancel(bookingId, tenantId string) error {
+	logger.Log.Info("Cancel booking called", zap.String("bookingId", bookingId), zap.String("tenantId", tenantId))
+
+	// 1. Cari booking berdasarkan ID
+	booking, err := s.BookingRepo.GetById(bookingId, tenantId)
+	if err != nil {
+		logger.Log.Warn("Booking tidak ditemukan", zap.String("bookingId", bookingId))
 		return err
 	}
-	logger.Log.Info("Booking berhasil dihapus", zap.String("bookingId", id))
+
+	// 2. Pastikan schedule terkait masih ada
+	schedule, err := s.ScheduleRepo.FindByID(booking.ScheduleId, tenantId)
+	if err != nil {
+		logger.Log.Warn("Schedule terkait tidak ditemukan", zap.String("scheduleId", booking.ScheduleId))
+		return err
+	}
+
+	// 3. Ubah status schedule menjadi ENABLE
+	schedule.Status = "ENABLE"
+	if err := s.ScheduleRepo.Update(schedule); err != nil {
+		logger.Log.Error("Gagal mengubah status schedule", zap.String("scheduleId", booking.ScheduleId), zap.Error(err))
+		return err
+	}
+
+	// 4. Hapus booking
+	if err := s.BookingRepo.Delete(bookingId, tenantId); err != nil {
+		logger.Log.Error("Gagal menghapus booking", zap.String("bookingId", bookingId), zap.Error(err))
+		return err
+	}
+
+	logger.Log.Info("Booking berhasil dibatalkan", zap.String("bookingId", bookingId), zap.String("scheduleId", booking.ScheduleId))
 	return nil
 }

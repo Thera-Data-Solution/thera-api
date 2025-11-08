@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"thera-api/services"
 
 	"github.com/gin-gonic/gin"
@@ -93,16 +94,42 @@ func (h *BookedHandler) GetById(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, booked)
 }
-
 func (h *BookedHandler) GetAll(c *gin.Context) {
 	authData, _ := c.Get("auth")
 	auth := authData.(gin.H)
 	tenantId := auth["tenantId"].(string)
 
-	booked, err := h.Service.GetAll(tenantId)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	booked, total, err := h.Service.GetAll(tenantId, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, booked)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  booked,
+		"page":  page,
+		"limit": limit,
+		"total": total,
+	})
+}
+
+func (h *BookedHandler) Cancel(c *gin.Context) {
+	id := c.Param("id")
+	authData, _ := c.Get("auth")
+	auth := authData.(gin.H)
+	tenantId := auth["tenantId"].(string)
+
+	err := h.Service.Cancel(id, tenantId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "kategori berhasil dihapus"})
 }
