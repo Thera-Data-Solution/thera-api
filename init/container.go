@@ -23,6 +23,7 @@ type Container struct {
 	ArticleHandler     *handlers.ArticleHandler
 	GalleryHandler     *handlers.GalleryHandler
 	TranslationHandler *handlers.TranslationHandler
+	SettingHandler     *handlers.SettingHandler
 }
 
 func NewContainer() *Container {
@@ -41,6 +42,7 @@ func NewContainer() *Container {
 	articleRepo := &repositories.ArticleRepository{DB: db}
 	galleryRepo := &repositories.GalleryRepository{DB: db}
 	translateRepo := &repositories.TranslationRepository{DB: db}
+	settingRepo := repositories.NewSettingRepo(db)
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -53,6 +55,7 @@ func NewContainer() *Container {
 	articleService := &services.ArticleService{Repo: articleRepo}
 	galleryService := &services.GalleryService{GalleryRepo: galleryRepo}
 	translateService := &services.TranslationService{Repo: translateRepo}
+	settingService := services.NewSettingService(settingRepo)
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -65,6 +68,7 @@ func NewContainer() *Container {
 	articleHandler := &handlers.ArticleHandler{Service: articleService}
 	galleryHandler := &handlers.GalleryHandler{Service: galleryService}
 	translateHandler := &handlers.TranslationHandler{Service: translateService}
+	settingHandler := handlers.NewSettingHandler(settingService)
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -89,5 +93,6 @@ func NewContainer() *Container {
 		ArticleHandler:     articleHandler,
 		GalleryHandler:     galleryHandler,
 		TranslationHandler: translateHandler,
+		SettingHandler:     settingHandler,
 	}
 }
