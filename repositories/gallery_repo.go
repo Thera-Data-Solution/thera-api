@@ -43,8 +43,28 @@ func (r *GalleryRepository) FindByIDAndTenant(id string, tenant string) (*models
 	return &gallery, nil
 }
 
-func (r *GalleryRepository) FindAll(tenant string) ([]models.Gallery, error) {
+func (r *GalleryRepository) FindAllWithPagination(tenantID string, page, pageSize int) ([]models.Gallery, int64, error) {
 	var gallery []models.Gallery
-	err := r.DB.Where(`tenant_id = ?`, tenant).Find(&gallery).Error
-	return gallery, err
+	var total int64
+
+	query := r.DB.Model(&models.Gallery{}).Where("tenant_id = ?", tenantID)
+
+	// Hitung total data
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Terapkan pagination
+	offset := (page - 1) * pageSize
+	err := query.
+		Offset(offset).
+		Limit(pageSize).
+		Order("created_at DESC"). // Urutkan berdasarkan tanggal terbaru
+		Find(&gallery).Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return gallery, total, nil
 }
