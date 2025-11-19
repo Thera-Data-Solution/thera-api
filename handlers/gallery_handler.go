@@ -3,13 +3,16 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"thera-api/logger"
 	"thera-api/services"
 	"thera-api/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
+	"go.uber.org/zap"
 )
 
 type GalleryHandler struct {
@@ -107,13 +110,26 @@ func (h *GalleryHandler) Delete(c *gin.Context) {
 }
 
 func (h *GalleryHandler) GetAll(c *gin.Context) {
-	tenantId := c.GetHeader("x-tenant-id")
-	if tenantId == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
+	tenantID := c.GetHeader("x-tenant-id")
+	if tenantID == "" {
+		logger.Log.Warn("GetAll Gallery: tenantId header is missing")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tenantId tidak ditemukan di header"})
 		return
 	}
-	gallery, err := h.Service.GetAllGallery(tenantId)
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	if err != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	gallery, err := h.Service.GetAllGallery(tenantID, page, pageSize)
 	if err != nil {
+		logger.Log.Error("Failed to get all gallery with pagination via service", zap.Error(err), zap.String("tenantId", tenantID))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
