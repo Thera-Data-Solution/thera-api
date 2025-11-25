@@ -57,12 +57,3 @@ func (r *PartnerRepository) FindAllWithPagination(tenantID string, page, pageSiz
 
 	return partners, total, nil
 }
-
-// func (r *PartnerRepository) FindByIDAndTenant(id string, tenant string) (*models.Partner, error) {
-// 	var partner models.Partner
-// 	err := r.DB.First(&partner, `id = ? AND tenant_id = ?`, id, tenant).Error
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &partner, nil
-// }

@@ -13,6 +13,5 @@ func RegisterPartnerRoutes(router *gin.RouterGroup, c *initpkg.Container) {
 		partner.POST("", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.PartnerHandler.Create)
 		partner.PUT("/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.PartnerHandler.Update)
 		partner.DELETE("/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.PartnerHandler.Delete)
-		// partner.GET("/:id", c.PartnerHandler.GetByID)
 	}
 }

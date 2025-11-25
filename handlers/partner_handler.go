@@ -119,14 +119,3 @@ func (h *PartnerHandler) GetAll(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, partner)
 }
-
-// func (h *PartnerHandler) GetByID(c *gin.Context) {
-// 	tenantId := c.GetHeader("x-tenant-id")
-// 	id := c.Param("id")
-// 	partner, err := h.Service.GetByID(id, tenantId)
-// 	if err != nil {
-// 		c.JSON(http.StatusNotFound, gin.H{"error": "partner tidak ditemukan"})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, partner)
-// }

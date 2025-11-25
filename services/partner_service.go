@@ -79,7 +79,3 @@ func (s *PartnerService) GetAllPartners(tenantID string, page, pageSize int) (*d
 func (s *PartnerService) Delete(id string, tenantId string) error {
 	return s.PartnerRepo.Delete(id, tenantId)
 }
-
-// func (s *PartnerService) GetByID(id string, tenantId string) (*models.Partner, error) {
-// 	return s.PartnerRepo.FindByID(id, tenantId)
-// }
