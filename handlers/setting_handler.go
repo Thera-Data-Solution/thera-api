@@ -21,10 +21,16 @@ func NewSettingHandler(service services.SettingService) *SettingHandler {
 }
 
 func (h *SettingHandler) GetAll(c *gin.Context) {
-	settings, err := h.service.FindAll()
+	tenantId := c.GetHeader("x-tenant-id")
+	if tenantId == "" {
+		logger.Log.Warn("GetAll Settings: tenantId header is missing")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tenantId tidak ditemukan di header"})
+		return
+	}
+	settings, err := h.service.FindByTenantId(tenantId)
 	if err != nil {
-		logger.Log.Error("failed to get all settings", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get all settings"})
+		logger.Log.Error("failed to get settings", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get settings"})
 		return
 	}
 
@@ -59,8 +65,15 @@ func (h *SettingHandler) GetByTenantId(c *gin.Context) {
 
 func (h *SettingHandler) Upsert(c *gin.Context) {
 	var dto dto.SettingRequestBody
+	authData, exists := c.Get("auth")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "auth tidak ditemukan"})
+		return
+	}
+	auth := authData.(gin.H)
+	tenantId := auth["tenantId"].(string)
+	dto.TenantId = &tenantId
 
-	// Parse form data manually
 	dto.AppName = c.PostForm("appName")
 	dto.AppTitle = c.PostForm("appTitle")
 	appDescription := c.PostForm("appDescription")
@@ -81,8 +94,6 @@ func (h *SettingHandler) Upsert(c *gin.Context) {
 	dto.MetaOg = &metaOg
 	timezone := c.PostForm("timezone")
 	dto.Timezone = &timezone
-	tenantId := c.PostForm("tenantId")
-	dto.TenantId = &tenantId
 
 	// Handle file upload
 	file, fileHeader, err := c.Request.FormFile("appLogo")
