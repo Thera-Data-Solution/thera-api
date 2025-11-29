@@ -24,6 +24,7 @@ type Container struct {
 	GalleryHandler     *handlers.GalleryHandler
 	TranslationHandler *handlers.TranslationHandler
 	SettingHandler     *handlers.SettingHandler
+	PartnerHandler     *handlers.PartnerHandler
 }
 
 func NewContainer() *Container {
@@ -43,6 +44,7 @@ func NewContainer() *Container {
 	galleryRepo := &repositories.GalleryRepository{DB: db}
 	translateRepo := &repositories.TranslationRepository{DB: db}
 	settingRepo := repositories.NewSettingRepo(db)
+	partnerRepo := &repositories.PartnerRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -56,6 +58,7 @@ func NewContainer() *Container {
 	galleryService := &services.GalleryService{GalleryRepo: galleryRepo}
 	translateService := &services.TranslationService{Repo: translateRepo}
 	settingService := services.NewSettingService(settingRepo)
+	partnerService := &services.PartnerService{PartnerRepo: partnerRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -69,6 +72,7 @@ func NewContainer() *Container {
 	galleryHandler := &handlers.GalleryHandler{Service: galleryService}
 	translateHandler := &handlers.TranslationHandler{Service: translateService}
 	settingHandler := handlers.NewSettingHandler(settingService)
+	partnerHandler := &handlers.PartnerHandler{Service: partnerService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -94,5 +98,6 @@ func NewContainer() *Container {
 		GalleryHandler:     galleryHandler,
 		TranslationHandler: translateHandler,
 		SettingHandler:     settingHandler,
+		PartnerHandler:     partnerHandler,
 	}
 }
