@@ -20,4 +20,5 @@ func SetupRoutes(r *gin.Engine, c *initpkg.Container) {
 	RegisterTranslationRoutes(api, c)
 	RegisterSettingRoutes(api, c)
 	RegisterPartnerRoutes(api, c)
+	RegisterUserRoutes(api, c)
 }

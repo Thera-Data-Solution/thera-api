@@ -120,7 +120,7 @@ func (h *SettingHandler) Upsert(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, setting)
+	c.JSON(http.StatusOK, gin.H{"message": "Setting upserted successfully", "data": setting})
 }
 
 func (h *SettingHandler) Delete(c *gin.Context) {

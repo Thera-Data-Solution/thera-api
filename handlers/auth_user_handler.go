@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"thera-api/logger"
 	"thera-api/models"
 	"thera-api/services"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type AuthUserHandler struct {
@@ -23,23 +25,41 @@ func (h *AuthUserHandler) Register(c *gin.Context) {
 		Fb       string `json:"fb"`
 		Address  string `jsong:"address"`
 	}
+	logger.Log.Info("Menerima request register user",
+		zap.String("email", req.Email),
+		zap.String("fullName", req.FullName),
+		zap.String("phone", req.Phone),
+		zap.String("tenantId", tenantId),
+	)
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log.Error("Gagal bind JSON", zap.Error(err))
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 
 	}
 
 	if tenantId == "" {
+		logger.Log.Error("Tenant ID kosong pada request register")
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error code 001"})
 		return
 	}
 
 	session, err := h.Service.RegisterUser(req.Email, req.Password, req.FullName, req.Phone, req.Address, req.Ig, req.Fb, tenantId)
 	if err != nil {
+		logger.Log.Error("Gagal register user",
+			zap.String("email", req.Email),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	logger.Log.Info("Berhasil register user",
+		zap.String("email", req.Email),
+		zap.String("tenantId", tenantId),
+	)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "registered",

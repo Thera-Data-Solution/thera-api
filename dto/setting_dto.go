@@ -18,3 +18,8 @@ type SettingRequestBody struct {
 	Timezone             *string `json:"timezone,omitempty" form:"timezone"`
 	TenantId             *string `json:"tenantId,omitempty" form:"tenantId" gorm:"index"`
 }
+
+type SettingResponse struct {
+	Status  string
+	Message string
+}

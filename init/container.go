@@ -25,6 +25,7 @@ type Container struct {
 	TranslationHandler *handlers.TranslationHandler
 	SettingHandler     *handlers.SettingHandler
 	PartnerHandler     *handlers.PartnerHandler
+	TenantUserHandler  *handlers.UserHandler
 }
 
 func NewContainer() *Container {
@@ -59,6 +60,7 @@ func NewContainer() *Container {
 	translateService := &services.TranslationService{Repo: translateRepo}
 	settingService := services.NewSettingService(settingRepo)
 	partnerService := &services.PartnerService{PartnerRepo: partnerRepo}
+	userService := &services.UserService{UserRepo: userRepo}
 
 	userHandler := &handlers.AuthUserHandler{Service: authUserService}
 	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
@@ -73,6 +75,7 @@ func NewContainer() *Container {
 	translateHandler := &handlers.TranslationHandler{Service: translateService}
 	settingHandler := handlers.NewSettingHandler(settingService)
 	partnerHandler := &handlers.PartnerHandler{Service: partnerService}
+	tenantUserHandler := &handlers.UserHandler{Service: userService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -99,5 +102,6 @@ func NewContainer() *Container {
 		TranslationHandler: translateHandler,
 		SettingHandler:     settingHandler,
 		PartnerHandler:     partnerHandler,
+		TenantUserHandler:  tenantUserHandler,
 	}
 }

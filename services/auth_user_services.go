@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"thera-api/logger"
 	"thera-api/models"
 	"thera-api/repositories"
@@ -41,6 +42,8 @@ func (s *AuthUserService) RegisterUser(
 		return nil, errors.New("data input tidak lengkap")
 	}
 
+	fmt.Printf(fullName, phone, email)
+
 	existing, _ := s.UserRepo.FindByEmailAndTenant(email, tenantId)
 	if existing.ID != "" {
 		logger.Log.Warn("Email sudah terdaftar", zap.String("email", email))
@@ -66,6 +69,7 @@ func (s *AuthUserService) RegisterUser(
 		FullName: fullName,
 		Avatar:   &avatar,
 		Fb:       &fb,
+		Phone:    phone,
 		Ig:       &ig,
 		Address:  &address,
 		TenantId: tenantId,
