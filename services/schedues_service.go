@@ -14,8 +14,12 @@ func (s *SchedulesService) GetAllSchedules(tenantId string) ([]models.Schedules,
 	return s.SchedulesRepo.FindAll(tenantId)
 }
 
-func (s *SchedulesService) GetScheduleByID(id string, tenantId string, date string, scheduleId string) ([]models.Schedules, error) {
-	return s.SchedulesRepo.FindByCatID(id, tenantId, date, scheduleId)
+func (s *SchedulesService) GetScheduleByCatID(id string, tenantId string, date string) ([]models.Schedules, error) {
+	return s.SchedulesRepo.FindByCatID(id, tenantId, date)
+}
+
+func (s *SchedulesService) GetScheduleByID(id string, tenantId string) (*models.Schedules, error) {
+	return s.SchedulesRepo.FindByID(id, tenantId)
 }
 
 func (s *SchedulesService) CreateSchedule(dateTime time.Time, categoryId, status string, tenantId string) (*models.Schedules, error) {
