@@ -32,24 +32,33 @@ func (r *SchedulesRepository) FindByID(id string, tenantId string) (*models.Sche
 	return &schedule, nil
 }
 
-func (r *SchedulesRepository) FindByCatID(id string, tenantId string, date string) ([]models.Schedules, error) {
+func (r *SchedulesRepository) FindByCatID(
+	id string,
+	tenantId string,
+	date string,
+	scheduleId string,
+) ([]models.Schedules, error) {
+
 	var schedules []models.Schedules
 
 	query := r.DB.
 		Preload("Categories").
 		Where("tenant_id = ? AND category_id = ?", tenantId, id)
 
-	if date != "" {
+	if scheduleId != "" {
+		query = query.Where("id = ?", scheduleId)
+
+	} else if date != "" {
 		query = query.Where(
 			"DATE(date_time) = ?",
 			date,
 		)
+
 	} else {
 		query = query.Where("date_time > NOW()")
 	}
 
-	err := query.Find(&schedules).Error
-	if err != nil {
+	if err := query.Find(&schedules).Error; err != nil {
 		return nil, err
 	}
 
