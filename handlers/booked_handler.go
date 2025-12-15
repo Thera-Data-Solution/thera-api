@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
+	"thera-api/models"
 	"thera-api/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/datatypes"
 )
 
 type BookedHandler struct {
@@ -18,8 +21,10 @@ func NewBookedHandler(service *services.BookedService) *BookedHandler {
 
 func (h *BookedHandler) Create(c *gin.Context) {
 	var req struct {
-		ScheduleId string `json:"scheduleId"`
+		ScheduleId   string `json:"scheduleId" binding:"required"`
+		CustomAnswer string `json:"customAnswer"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -27,24 +32,48 @@ func (h *BookedHandler) Create(c *gin.Context) {
 
 	authData, _ := c.Get("auth")
 	auth := authData.(gin.H)
+
 	tenantId := auth["tenantId"].(string)
 	userType := auth["userType"].(string)
-	var userIdentifier string
 
 	if userType != "user" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak ditemukan"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak valid"})
 		return
 	}
+
+	var userIdentifier string
 	if uid, ok := auth["userId"].(*string); ok && uid != nil {
 		userIdentifier = *uid
 	}
 
-	err := h.Service.Create(userIdentifier, req.ScheduleId, tenantId)
-	if err != nil {
+	var customAnswer datatypes.JSON
+
+	if req.CustomAnswer != "" {
+		var temp []models.BookedCustomField
+
+		if err := json.Unmarshal([]byte(req.CustomAnswer), &temp); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "format customAnswer tidak valid",
+			})
+			return
+		}
+
+		customAnswer = datatypes.JSON(req.CustomAnswer)
+	}
+
+	if err := h.Service.Create(
+		userIdentifier,
+		req.ScheduleId,
+		tenantId,
+		customAnswer,
+	); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "booking berhasil dibuat"})
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "booking berhasil dibuat",
+	})
 }
 
 func (h *BookedHandler) GetByUserId(c *gin.Context) {

@@ -3,6 +3,8 @@ package services
 import (
 	"thera-api/models"
 	"thera-api/repositories"
+
+	"gorm.io/datatypes"
 )
 
 type CategoriesService struct {
@@ -31,6 +33,7 @@ func (s *CategoriesService) CreateCategory(
 	price *float64,
 	isGroup, isFree, isPayAsYouWish, isManual, disable bool,
 	tenantId *string,
+	customFields datatypes.JSON,
 ) (*models.Categories, error) {
 	category := &models.Categories{
 		Name:           name,
@@ -48,6 +51,7 @@ func (s *CategoriesService) CreateCategory(
 		IsManual:       isManual,
 		Disable:        disable,
 		TenantId:       tenantId,
+		CustomFields:   customFields,
 	}
 	if err := s.CategoriesRepo.Create(category); err != nil {
 		return nil, err
@@ -63,11 +67,16 @@ func (s *CategoriesService) UpdateCategory(
 	price *float64,
 	isGroup, isFree, isPayAsYouWish, isManual, disable *bool,
 	tenantId string,
+	customFields datatypes.JSON,
 ) (*models.Categories, error) {
 	category, err := s.CategoriesRepo.FindByID(id, tenantId)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if customFields != nil {
+		category.CustomFields = customFields
 	}
 
 	if name != nil {

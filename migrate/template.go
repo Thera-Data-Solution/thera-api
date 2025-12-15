@@ -21,12 +21,10 @@ func TemplateMigration(id string, model interface{}, rollbackColumn string) {
 		{
 			ID: id,
 			Migrate: func(tx *gorm.DB) error {
-				// AutoMigrate hanya untuk model yang diubah
 				return tx.AutoMigrate(model)
 			},
 			Rollback: func(tx *gorm.DB) error {
 				if rollbackColumn != "" {
-					// Drop kolom jika rollback
 					return tx.Migrator().DropColumn(model, rollbackColumn)
 				}
 				return nil

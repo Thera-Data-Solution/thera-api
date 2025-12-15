@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 )
 
 type BookedService struct {
@@ -22,7 +23,7 @@ func NewBookedService(bookingRepo *repositories.BookedRepository, scheduleRepo *
 	}
 }
 
-func (s *BookedService) Create(userId, scheduleId string, tenantId string) error {
+func (s *BookedService) Create(userId, scheduleId string, tenantId string, customAnswer datatypes.JSON) error {
 	logger.Log.Info("Create booking called", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.String("tenantId", tenantId))
 
 	schedule, err := s.ScheduleRepo.FindByID(scheduleId, tenantId)
@@ -43,10 +44,11 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string) error
 	}
 
 	booked := &models.Booked{
-		UserId:     userId,
-		ScheduleId: scheduleId,
-		BookedAt:   time.Now(),
-		TenantId:   &tenantId,
+		UserId:       userId,
+		ScheduleId:   scheduleId,
+		BookedAt:     time.Now(),
+		TenantId:     &tenantId,
+		CustomAnswer: customAnswer,
 	}
 
 	if err := s.BookingRepo.Create(booked); err != nil {
