@@ -73,7 +73,8 @@ func (h *SchedulesHandler) GetByID(c *gin.Context) {
 		return
 	}
 	id := c.Param("id")
-	schedule, err := h.Service.GetScheduleByID(id, tenantId)
+	date := c.Query("date")
+	schedule, err := h.Service.GetScheduleByID(id, tenantId, date)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "jadwal tidak ditemukan"})
 		return
