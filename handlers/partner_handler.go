@@ -28,7 +28,7 @@ func (h *PartnerHandler) Create(c *gin.Context) {
 	file, fileHeader, err := c.Request.FormFile("logo")
 	if err == nil {
 		uploader, _ := utils.NewMinIOUploader()
-		url, err := uploader.UploadFile(c, file, fileHeader)
+		url, err := uploader.UploadWithoutDecode(c, file, fileHeader)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal upload logo", "detail": err.Error()})
 			return

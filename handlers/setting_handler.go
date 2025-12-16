@@ -104,7 +104,7 @@ func (h *SettingHandler) Upsert(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal inisialisasi uploader MinIO"})
 			return
 		}
-		url, minioErr := uploader.UploadFile(c, file, fileHeader)
+		url, minioErr := uploader.UploadWithoutDecode(c, file, fileHeader)
 		if minioErr != nil {
 			logger.Log.Error("failed to upload file", zap.Error(minioErr))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file"})

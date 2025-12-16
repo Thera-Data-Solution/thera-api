@@ -44,7 +44,12 @@ func (r *BookedRepository) GetAll(tenantId string, limit, offset int) ([]models.
 
 func (r *BookedRepository) GetByUser(tenantId string, userId string) ([]models.Booked, error) {
 	var booked []models.Booked
-	err := r.DB.Where(`tenant_id = ? AND "userId" = ?`, tenantId, userId).Find(&booked).Error
+	err := r.DB.
+		Where(`tenant_id = ? AND "user_id" = ?`, tenantId, userId).
+		Preload("User").
+		Preload("Schedule").
+		Preload("Schedule.Categories").
+		Find(&booked).Error
 	return booked, err
 }
 
