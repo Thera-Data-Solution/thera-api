@@ -162,3 +162,44 @@ func (h *BookedHandler) Cancel(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "kategori berhasil dihapus"})
 }
+
+func (h *BookedHandler) AddTestimoni(c *gin.Context) {
+	authData, _ := c.Get("auth")
+	auth := authData.(gin.H)
+	tenantId := auth["tenantId"].(string)
+	id := c.Param("id")
+
+	var input struct {
+		Testimoni string `json:"testimoni" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := h.Service.AddTestimoni(id, &input.Testimoni, tenantId)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Testimoni berhasil ditambahkan",
+		"data":    result,
+	})
+}
+
+func (h *BookedHandler) GetAllTestimoni(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	results, err := h.Service.GetAllTestimoni(tenantId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data testimoni"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   results,
+	})
+}

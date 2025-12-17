@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"thera-api/logger"
 	"thera-api/models"
 	"thera-api/repositories"
@@ -95,31 +96,48 @@ func (s *BookedService) Update(booked *models.Booked) error {
 	return nil
 }
 
+func (s *BookedService) AddTestimoni(id string, testimoni *string, tenantId string) (*models.Booked, error) {
+	logger.Log.Info("Add testimoni called", zap.String("id", id), zap.String("tenantId", tenantId))
+
+	booked, err := s.BookingRepo.GetById(id, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	if booked.Schedule.Status != "CLOSED" {
+		logger.Log.Warn("Status jadwal tidak valid", zap.String("scheduleId", booked.ScheduleId))
+		fmt.Println(booked.Schedule.Status)
+		return nil, errors.New("testimoni hanya dapat diisi jika status jadwal sudah selesai")
+	}
+
+	booked.Testimoni = testimoni
+	if err := s.BookingRepo.Update(booked); err != nil {
+		return nil, err
+	}
+
+	return booked, nil
+}
+
 func (s *BookedService) Cancel(bookingId, tenantId string) error {
 	logger.Log.Info("Cancel booking called", zap.String("bookingId", bookingId), zap.String("tenantId", tenantId))
 
-	// 1. Cari booking berdasarkan ID
 	booking, err := s.BookingRepo.GetById(bookingId, tenantId)
 	if err != nil {
 		logger.Log.Warn("Booking tidak ditemukan", zap.String("bookingId", bookingId))
 		return err
 	}
-
-	// 2. Pastikan schedule terkait masih ada
 	schedule, err := s.ScheduleRepo.FindByID(booking.ScheduleId, tenantId)
 	if err != nil {
 		logger.Log.Warn("Schedule terkait tidak ditemukan", zap.String("scheduleId", booking.ScheduleId))
 		return err
 	}
 
-	// 3. Ubah status schedule menjadi ENABLE
 	schedule.Status = "ENABLE"
 	if err := s.ScheduleRepo.Update(schedule); err != nil {
 		logger.Log.Error("Gagal mengubah status schedule", zap.String("scheduleId", booking.ScheduleId), zap.Error(err))
 		return err
 	}
 
-	// 4. Hapus booking
 	if err := s.BookingRepo.Delete(bookingId, tenantId); err != nil {
 		logger.Log.Error("Gagal menghapus booking", zap.String("bookingId", bookingId), zap.Error(err))
 		return err
@@ -127,4 +145,10 @@ func (s *BookedService) Cancel(bookingId, tenantId string) error {
 
 	logger.Log.Info("Booking berhasil dibatalkan", zap.String("bookingId", bookingId), zap.String("scheduleId", booking.ScheduleId))
 	return nil
+}
+
+func (s *BookedService) GetAllTestimoni(tenantId string) ([]models.Booked, error) {
+	logger.Log.Info("Get all testimoni called", zap.String("tenantId", tenantId))
+
+	return s.BookingRepo.GetAllWithTestimoni(tenantId)
 }

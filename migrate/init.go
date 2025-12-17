@@ -11,4 +11,7 @@ func RunMigrations() {
 	TemplateMigration("005_adding_custom_field", &models.CategoryCustomField{}, "")
 	TemplateMigration("006_adding_custom_field", &models.Booked{}, "")
 	TemplateMigration("007_adding_custom_field", &models.BookedCustomField{}, "")
+	TemplateMigration("007_adding_custom_field", &models.BookedCustomField{}, "")
+	TemplateMigration("008_adding_tesimoni", &models.Booked{}, "")
+	TemplateMigration("009_adding_bool_tesimoni", &models.Booked{}, "")
 }

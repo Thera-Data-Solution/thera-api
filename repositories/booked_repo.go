@@ -55,7 +55,12 @@ func (r *BookedRepository) GetByUser(tenantId string, userId string) ([]models.B
 
 func (r *BookedRepository) GetById(id string, tenantId string) (*models.Booked, error) {
 	var booked models.Booked
-	err := r.DB.Where(`id = ? AND tenant_id = ?`, id, tenantId).First(&booked).Error
+	err := r.DB.
+		Where(`id = ? AND tenant_id = ?`, id, tenantId).
+		Preload("User").
+		Preload("Schedule").
+		Preload("Schedule.Categories").
+		First(&booked).Error
 	return &booked, err
 }
 
@@ -71,4 +76,18 @@ func (r *BookedRepository) Delete(id string, tenantId string) error {
 		Where(`id = ? AND tenant_id = ?`, id, tenantId).
 		Delete(&models.Booked{}).
 		Error
+}
+
+func (r *BookedRepository) GetAllWithTestimoni(tenantId string) ([]models.Booked, error) {
+	var booked []models.Booked
+
+	err := r.DB.
+		Preload("Schedule").
+		Preload("User").
+		Where("tenant_id = ?", tenantId).
+		Where("testimoni IS NOT NULL AND testimoni <> ''").
+		Find(&booked).
+		Error
+
+	return booked, err
 }
