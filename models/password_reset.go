@@ -14,3 +14,5 @@ type PasswordResetToken struct {
 	CreatedAt time.Time `json:"createdAt" gorm:"autoCreateTime"`
 }
 
+
+

@@ -46,9 +46,12 @@ func NewContainer() *Container {
 	translateRepo := &repositories.TranslationRepository{DB: db}
 	settingRepo := repositories.NewSettingRepo(db)
 	partnerRepo := &repositories.PartnerRepository{DB: db}
+	passwordResetRepo := repositories.NewPasswordResetRepository(db)
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
+	passwordResetService := services.NewPasswordResetService(passwordResetRepo, userRepo, adminRepo, settingRepo)
+	profileService := services.NewProfileService(userRepo, adminRepo)
 	tenantService := &services.TenantService{TenantRepo: tenantRepo}
 	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
@@ -62,8 +65,16 @@ func NewContainer() *Container {
 	partnerService := &services.PartnerService{PartnerRepo: partnerRepo}
 	userService := &services.UserService{UserRepo: userRepo}
 
-	userHandler := &handlers.AuthUserHandler{Service: authUserService}
-	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
+	userHandler := &handlers.AuthUserHandler{
+		Service:            authUserService,
+		PasswordResetService: passwordResetService,
+		ProfileService:      profileService,
+	}
+	adminHandler := &handlers.AuthAdminHandler{
+		Service:            authAdminService,
+		PasswordResetService: passwordResetService,
+		ProfileService:      profileService,
+	}
 	tenantHandler := &handlers.TenantHandler{Service: tenantService}
 	categoryHandler := &handlers.CategoriesHandler{Service: categoryService}
 	scheduleHandler := &handlers.SchedulesHandler{Service: scheduleService}

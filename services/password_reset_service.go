@@ -337,3 +337,5 @@ func (s *PasswordResetService) generateResetEmailHTML(fullName, resetURL, appNam
 `, fullName, appName, resetURL, resetURL)
 }
 
+
+

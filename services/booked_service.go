@@ -183,21 +183,18 @@ func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId st
 		return
 	}
 
-	// Get latest booking with full details (User and Schedule with Categories)
 	booked, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
 	if err != nil {
 		logger.Log.Error("Gagal mengambil data booking untuk Telegram", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.Error(err))
 		return
 	}
 
-	// Format and send message
-	message := s.formatTelegramMessage(booked)
+	message := s.formatTelegramMessage(booked, setting)
 	if message == "" {
 		logger.Log.Warn("Pesan Telegram kosong", zap.String("bookingId", booked.ID))
 		return
 	}
 
-	// Send Telegram message
 	cfg := utils.TelegramConfig{
 		BotToken: *setting.TelegramBotToken,
 		ChatID:   *setting.TelegramChatId,
@@ -211,8 +208,7 @@ func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId st
 	logger.Log.Info("Notifikasi Telegram berhasil dikirim", zap.String("bookingId", booked.ID))
 }
 
-// formatTelegramMessage formats the booking data into Telegram HTML message
-func (s *BookedService) formatTelegramMessage(booked *models.Booked) string {
+func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *models.Setting) string {
 	if booked.User.ID == "" || booked.Schedule.ID == "" {
 		return ""
 	}
@@ -221,27 +217,33 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked) string {
 	category := schedule.Categories
 	user := booked.User
 
-	// Format date and time
-	scheduleDate := schedule.DateTime
-	dateStr := scheduleDate.Format("01/02/2006") // MM/DD/YYYY format
-	timeStr := scheduleDate.Format("3:04 PM")    // H:MM AM/PM format (no leading zero for hour)
+	timezone := "UTC"
+	if setting.Timezone != nil && *setting.Timezone != "" {
+		timezone = *setting.Timezone
+	}
 
-	// Format isGroup
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		logger.Log.Warn("Gagal load timezone, menggunakan UTC", zap.String("timezone", timezone), zap.Error(err))
+		loc = time.UTC
+	}
+
+	scheduleDate := schedule.DateTime.In(loc)
+	dateStr := scheduleDate.Format("01/02/2006")
+	timeStr := scheduleDate.Format("3:04 PM")
+
 	isGroupStr := "No"
 	if category.IsGroup {
 		isGroupStr = "Yes"
 	}
 
-	// Format price
 	priceStr := s.getPrice(category.IsFree, category.IsPayAsYouWish, category.Price)
 
-	// Format location
 	locationStr := "N/A"
 	if category.Location != nil && *category.Location != "" {
 		locationStr = *category.Location
 	}
 
-	// Format social media
 	socialMedia := ""
 	if user.Ig != nil && *user.Ig != "" {
 		socialMedia = *user.Ig
@@ -256,7 +258,6 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked) string {
 		socialMedia = "N/A"
 	}
 
-	// Build HTML message
 	message := fmt.Sprintf(
 		"<b>New Booking Request</b>\n"+
 			"<b>Class:</b> %s\n"+
@@ -284,7 +285,6 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked) string {
 	return message
 }
 
-// getPrice formats the price based on isFree, isPayAsYouWish, and price
 func (s *BookedService) getPrice(isFree, isPayAsYouWish bool, price *float64) string {
 	if isFree {
 		return "Free"
