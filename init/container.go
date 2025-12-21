@@ -52,7 +52,7 @@ func NewContainer() *Container {
 	tenantService := &services.TenantService{TenantRepo: tenantRepo}
 	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
-	bookingService := &services.BookedService{BookingRepo: bookingRepo, ScheduleRepo: scheduleRepo}
+	bookingService := services.NewBookedService(bookingRepo, scheduleRepo, settingRepo)
 	heroService := &services.HeroService{Repo: heroRepo}
 	linkService := &services.LinkService{Repo: linkRepo}
 	articleService := &services.ArticleService{Repo: articleRepo}

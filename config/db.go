@@ -22,7 +22,9 @@ func ConnectDatabase() {
 		log.Fatal("❌ DATABASE_URL not found in environment")
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		PrepareStmt: false,
+	})
 	if err != nil {
 		log.Fatal("❌ failed to connect database:", err)
 	}

@@ -170,7 +170,9 @@ func (h *BookedHandler) AddTestimoni(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Testimoni string `json:"testimoni" binding:"required"`
+		Testimoni string `json:"testimoni"`
+		Anonymous *bool  `json:"anonymous"`
+		ShowTesti *bool  `json:"showTesti"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -178,7 +180,7 @@ func (h *BookedHandler) AddTestimoni(c *gin.Context) {
 		return
 	}
 
-	result, err := h.Service.AddTestimoni(id, &input.Testimoni, tenantId)
+	result, err := h.Service.AddTestimoni(id, &input.Testimoni, input.Anonymous, input.ShowTesti, tenantId)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return

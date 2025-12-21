@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"thera-api/dto"
 	"thera-api/logger"
 	"thera-api/services"
@@ -80,20 +79,35 @@ func (h *SettingHandler) Upsert(c *gin.Context) {
 	dto.AppDescription = &appDescription
 	appTheme := c.PostForm("appTheme")
 	dto.AppTheme = &appTheme
-	dto.AppMainColor = c.PostForm("appMainColor")
-	dto.AppHeaderColor = c.PostForm("appHeaderColor")
-	dto.AppFooterColor = c.PostForm("appFooterColor")
-	fontSize, _ := strconv.Atoi(c.PostForm("fontSize"))
-	dto.FontSize = fontSize
-	appDecoration := c.PostForm("appDecoration")
-	dto.AppDecoration = &appDecoration
 	dto.EnableChatBot = c.PostForm("enableChatBot") == "true"
 	dto.EnableFacilitator = c.PostForm("enableFacilitator") == "true"
 	dto.EnablePaymentGateway = c.PostForm("enablePaymentGateway") == "true"
-	metaOg := c.PostForm("metaOg")
-	dto.MetaOg = &metaOg
 	timezone := c.PostForm("timezone")
 	dto.Timezone = &timezone
+	telegramBotToken := c.PostForm("telegramBotToken")
+	if telegramBotToken != "" {
+		dto.TelegramBotToken = &telegramBotToken
+	}
+
+	telegramChatId := c.PostForm("telegramChatId")
+	if telegramChatId != "" {
+		dto.TelegramChatId = &telegramChatId
+	}
+
+	mailKey := c.PostForm("mailKey")
+	if mailKey != "" {
+		dto.MailKey = &mailKey
+	}
+
+	mailSecret := c.PostForm("mailSecret")
+	if mailSecret != "" {
+		dto.MailSecret = &mailSecret
+	}
+
+	discordReportId := c.PostForm("discordReportId")
+	if discordReportId != "" {
+		dto.DiscordReportId = &discordReportId
+	}
 
 	// Handle file upload
 	file, fileHeader, err := c.Request.FormFile("appLogo")

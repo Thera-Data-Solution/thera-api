@@ -13,6 +13,7 @@ type Booked struct {
 	BookedAt   time.Time `json:"bookedAt" gorm:"autoCreateTime"`
 	Testimoni  *string   `json:"testimoni,omitempty"`
 	ShowTesti  *bool     `json:"showTesti,omitempty"`
+	Anonymous  *bool     `json:"anonymous,omitempty"`
 
 	TenantId *string `json:"tenantId,omitempty" gorm:"index"`
 

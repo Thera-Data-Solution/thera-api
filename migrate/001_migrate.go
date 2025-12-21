@@ -13,7 +13,7 @@ func Migration001() {
 	db := config.DB
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		{
-			ID: "001_init_all_models",
+			ID: "002_init_all_models",
 			Migrate: func(tx *gorm.DB) error {
 				return tx.AutoMigrate(
 					&models.Article{},

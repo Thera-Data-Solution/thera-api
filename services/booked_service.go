@@ -6,6 +6,7 @@ import (
 	"thera-api/logger"
 	"thera-api/models"
 	"thera-api/repositories"
+	"thera-api/utils"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,12 +16,14 @@ import (
 type BookedService struct {
 	BookingRepo  *repositories.BookedRepository
 	ScheduleRepo *repositories.SchedulesRepository
+	SettingRepo  repositories.SettingRepo
 }
 
-func NewBookedService(bookingRepo *repositories.BookedRepository, scheduleRepo *repositories.SchedulesRepository) *BookedService {
+func NewBookedService(bookingRepo *repositories.BookedRepository, scheduleRepo *repositories.SchedulesRepository, settingRepo repositories.SettingRepo) *BookedService {
 	return &BookedService{
 		BookingRepo:  bookingRepo,
 		ScheduleRepo: scheduleRepo,
+		SettingRepo:  settingRepo,
 	}
 }
 
@@ -58,6 +61,10 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string, custo
 	}
 
 	logger.Log.Info("Booking berhasil dibuat", zap.String("userId", userId), zap.String("scheduleId", scheduleId))
+
+	// Send Telegram notification asynchronously
+	go s.sendTelegramNotification(userId, scheduleId, tenantId)
+
 	return nil
 }
 
@@ -96,7 +103,7 @@ func (s *BookedService) Update(booked *models.Booked) error {
 	return nil
 }
 
-func (s *BookedService) AddTestimoni(id string, testimoni *string, tenantId string) (*models.Booked, error) {
+func (s *BookedService) AddTestimoni(id string, testimoni *string, anonymous *bool, showTesti *bool, tenantId string) (*models.Booked, error) {
 	logger.Log.Info("Add testimoni called", zap.String("id", id), zap.String("tenantId", tenantId))
 
 	booked, err := s.BookingRepo.GetById(id, tenantId)
@@ -109,8 +116,16 @@ func (s *BookedService) AddTestimoni(id string, testimoni *string, tenantId stri
 		fmt.Println(booked.Schedule.Status)
 		return nil, errors.New("testimoni hanya dapat diisi jika status jadwal sudah selesai")
 	}
+	var testimonis = ""
+	if testimoni == nil || *testimoni == "" {
+		testimonis = *booked.Testimoni
+	} else {
+		testimonis = *testimoni
+	}
 
-	booked.Testimoni = testimoni
+	booked.Testimoni = &testimonis
+	booked.ShowTesti = showTesti
+	booked.Anonymous = anonymous
 	if err := s.BookingRepo.Update(booked); err != nil {
 		return nil, err
 	}
@@ -151,4 +166,134 @@ func (s *BookedService) GetAllTestimoni(tenantId string) ([]models.Booked, error
 	logger.Log.Info("Get all testimoni called", zap.String("tenantId", tenantId))
 
 	return s.BookingRepo.GetAllWithTestimoni(tenantId)
+}
+
+// sendTelegramNotification sends a Telegram notification about new booking
+func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId string) {
+	// Get setting to check if Telegram is enabled
+	setting, err := s.SettingRepo.FindByTenantId(tenantId)
+	if err != nil {
+		logger.Log.Warn("Setting tidak ditemukan untuk Telegram", zap.String("tenantId", tenantId), zap.Error(err))
+		return
+	}
+
+	// Check if Telegram is enabled
+	if !utils.IsTelegramEnabled(setting) {
+		logger.Log.Debug("Telegram tidak diaktifkan untuk tenant", zap.String("tenantId", tenantId))
+		return
+	}
+
+	// Get latest booking with full details (User and Schedule with Categories)
+	booked, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
+	if err != nil {
+		logger.Log.Error("Gagal mengambil data booking untuk Telegram", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.Error(err))
+		return
+	}
+
+	// Format and send message
+	message := s.formatTelegramMessage(booked)
+	if message == "" {
+		logger.Log.Warn("Pesan Telegram kosong", zap.String("bookingId", booked.ID))
+		return
+	}
+
+	// Send Telegram message
+	cfg := utils.TelegramConfig{
+		BotToken: *setting.TelegramBotToken,
+		ChatID:   *setting.TelegramChatId,
+	}
+
+	if err := utils.SendTelegramHTML(cfg, message); err != nil {
+		logger.Log.Error("Gagal mengirim notifikasi Telegram", zap.String("bookingId", booked.ID), zap.Error(err))
+		return
+	}
+
+	logger.Log.Info("Notifikasi Telegram berhasil dikirim", zap.String("bookingId", booked.ID))
+}
+
+// formatTelegramMessage formats the booking data into Telegram HTML message
+func (s *BookedService) formatTelegramMessage(booked *models.Booked) string {
+	if booked.User.ID == "" || booked.Schedule.ID == "" {
+		return ""
+	}
+
+	schedule := booked.Schedule
+	category := schedule.Categories
+	user := booked.User
+
+	// Format date and time
+	scheduleDate := schedule.DateTime
+	dateStr := scheduleDate.Format("01/02/2006") // MM/DD/YYYY format
+	timeStr := scheduleDate.Format("3:04 PM")    // H:MM AM/PM format (no leading zero for hour)
+
+	// Format isGroup
+	isGroupStr := "No"
+	if category.IsGroup {
+		isGroupStr = "Yes"
+	}
+
+	// Format price
+	priceStr := s.getPrice(category.IsFree, category.IsPayAsYouWish, category.Price)
+
+	// Format location
+	locationStr := "N/A"
+	if category.Location != nil && *category.Location != "" {
+		locationStr = *category.Location
+	}
+
+	// Format social media
+	socialMedia := ""
+	if user.Ig != nil && *user.Ig != "" {
+		socialMedia = *user.Ig
+	}
+	if user.Fb != nil && *user.Fb != "" {
+		if socialMedia != "" {
+			socialMedia += " / "
+		}
+		socialMedia += *user.Fb
+	}
+	if socialMedia == "" {
+		socialMedia = "N/A"
+	}
+
+	// Build HTML message
+	message := fmt.Sprintf(
+		"<b>New Booking Request</b>\n"+
+			"<b>Class:</b> %s\n"+
+			"<b>is Group:</b> %s\n"+
+			"<b>Date:</b> %s\n"+
+			"<b>Time:</b> %s\n"+
+			"<b>Location:</b> %s\n"+
+			"<b>Price:</b> %s\n"+
+			"<b>Name:</b> %s\n"+
+			"<b>Phone:</b> %s\n"+
+			"<b>Email:</b> %s\n"+
+			"<b>Sosial Media:</b> %s",
+		category.Name,
+		isGroupStr,
+		dateStr,
+		timeStr,
+		locationStr,
+		priceStr,
+		user.FullName,
+		user.Phone,
+		user.Email,
+		socialMedia,
+	)
+
+	return message
+}
+
+// getPrice formats the price based on isFree, isPayAsYouWish, and price
+func (s *BookedService) getPrice(isFree, isPayAsYouWish bool, price *float64) string {
+	if isFree {
+		return "Free"
+	}
+	if isPayAsYouWish {
+		return "Pay as you wish"
+	}
+	if price != nil {
+		return fmt.Sprintf("Rp %.0f", *price)
+	}
+	return "N/A"
 }
