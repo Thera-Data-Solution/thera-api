@@ -215,6 +215,7 @@ func (h *BookedHandler) GetAllTestimoni(c *gin.Context) {
 			ID:        r.ID,
 			Testimoni: *r.Testimoni,
 			User:      user,
+			Event:     r.Schedule.Categories.Name,
 		})
 	}
 
