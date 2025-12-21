@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"thera-api/dto"
 	"thera-api/models"
 	"thera-api/services"
 
@@ -200,8 +201,25 @@ func (h *BookedHandler) GetAllTestimoni(c *gin.Context) {
 		return
 	}
 
+	responses := make([]dto.TestimoniResponse, 0)
+
+	for _, r := range results {
+		user := r.User.FullName
+		if r.Anonymous != nil && *r.Anonymous {
+			runes := []rune(user)
+			if len(runes) > 0 {
+				user = string(runes[0]) + "*****"
+			}
+		}
+		responses = append(responses, dto.TestimoniResponse{
+			ID:        r.ID,
+			Testimoni: *r.Testimoni,
+			User:      user,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data":   results,
+		"data":   responses,
 	})
 }

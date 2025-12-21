@@ -25,3 +25,7 @@ func (r *TenantUserRepository) FindByID(idToken string) (*models.TenantUser, err
 	err := r.DB.Where("id = ?", idToken).First(&user).Error
 	return &user, err
 }
+
+func (r *TenantUserRepository) Update(admin *models.TenantUser) error {
+	return r.DB.Save(admin).Error
+}
