@@ -26,40 +26,65 @@ func (h *SettingHandler) GetAll(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tenantId tidak ditemukan di header"})
 		return
 	}
+
 	settings, err := h.service.FindByTenantId(tenantId)
+	response := dto.SettingGetResponse{
+		AppName:        settings.AppName,
+		AppLogo:        settings.AppLogo,
+		AppTitle:       settings.AppTitle,
+		AppDescription: settings.AppDescription,
+		AppTheme:       settings.AppTheme,
+		Timezone:       settings.Timezone,
+	}
 	if err != nil {
 		logger.Log.Error("failed to get settings", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get settings"})
 		return
 	}
 
-	c.JSON(http.StatusOK, settings)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *SettingHandler) GetById(c *gin.Context) {
 	id := c.Param("id")
 
 	setting, err := h.service.FindById(id)
+	response := dto.SettingGetResponse{
+		AppName:        setting.AppName,
+		AppLogo:        setting.AppLogo,
+		AppTitle:       setting.AppTitle,
+		AppDescription: setting.AppDescription,
+		AppTheme:       setting.AppTheme,
+		Timezone:       setting.Timezone,
+	}
 	if err != nil {
 		logger.Log.Error("failed to get setting by id", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "Setting not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, setting)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *SettingHandler) GetByTenantId(c *gin.Context) {
 	tenantId := c.Param("tenantId")
 
 	setting, err := h.service.FindByTenantId(tenantId)
+	response := dto.SettingGetResponse{
+		AppName:        setting.AppName,
+		AppLogo:        setting.AppLogo,
+		AppTitle:       setting.AppTitle,
+		AppDescription: setting.AppDescription,
+		AppTheme:       setting.AppTheme,
+		Timezone:       setting.Timezone,
+	}
 	if err != nil {
 		logger.Log.Error("failed to get setting by tenant id", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "Setting not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, setting)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *SettingHandler) Upsert(c *gin.Context) {

@@ -21,10 +21,19 @@ type SettingRequestBody struct {
 	MailKey    *string `json:"mailKey,omitempty" form:"mailKey"`
 	MailSecret *string `json:"mailSecret,omitempty" form:"mailSecret"`
 
-	// 🔹 Discord
 	DiscordReportId *string `json:"discordReportId,omitempty" form:"discordReportId"`
 
 	TenantId *string `json:"tenantId,omitempty" form:"tenantId" gorm:"index"`
+}
+
+type SettingGetResponse struct {
+	AppName        string  `json:"appName"`
+	AppLogo        string  `json:"appLogo"`
+	AppTitle       string  `json:"appTitle"`
+	AppDescription *string `json:"appDescription,omitempty"`
+	AppTheme       *string `json:"appTheme,omitempty"`
+
+	Timezone *string `json:"timezone,omitempty"`
 }
 
 type SettingResponse struct {
