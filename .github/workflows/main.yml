@@ -2,8 +2,7 @@ name: Production Deploy
 
 on:
   push:
-    branches:
-      - [main]
+    branches: [main]
 
 env:
   IMAGE_NAME: thera-api
