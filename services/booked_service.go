@@ -62,8 +62,9 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string, custo
 
 	logger.Log.Info("Booking berhasil dibuat", zap.String("userId", userId), zap.String("scheduleId", scheduleId))
 
-	// Send Telegram notification asynchronously
+	// Send notifications asynchronously
 	go s.sendTelegramNotification(userId, scheduleId, tenantId)
+	go s.sendDiscordNotification(userId, scheduleId, tenantId)
 
 	return nil
 }
@@ -168,6 +169,45 @@ func (s *BookedService) GetAllTestimoni(tenantId string) ([]models.Booked, error
 	return s.BookingRepo.GetAllWithTestimoni(tenantId)
 }
 
+// sendDiscordNotification sends a Discord notification about new booking
+func (s *BookedService) sendDiscordNotification(userId, scheduleId, tenantId string) {
+	// Get setting to check if Discord is enabled
+	setting, err := s.SettingRepo.FindByTenantId(tenantId)
+	if err != nil {
+		logger.Log.Warn("Setting tidak ditemukan untuk Discord", zap.String("tenantId", tenantId), zap.Error(err))
+		return
+	}
+
+	// Check if Discord is enabled
+	if !utils.IsDiscordEnabled(setting) {
+		logger.Log.Debug("Discord tidak diaktifkan untuk tenant", zap.String("tenantId", tenantId))
+		return
+	}
+
+	booked, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
+	if err != nil {
+		logger.Log.Error("Gagal mengambil data booking untuk Discord", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.Error(err))
+		return
+	}
+
+	message := s.formatDiscordMessage(booked, setting)
+	if message == "" {
+		logger.Log.Warn("Pesan Discord kosong", zap.String("bookingId", booked.ID))
+		return
+	}
+
+	cfg := utils.DiscordWebhookConfig{
+		WebhookURL: *setting.DiscordReportId,
+	}
+
+	if err := utils.SendDiscordWebhook(cfg, message); err != nil {
+		logger.Log.Error("Gagal mengirim notifikasi Discord", zap.String("bookingId", booked.ID), zap.Error(err))
+		return
+	}
+
+	logger.Log.Info("Notifikasi Discord berhasil dikirim", zap.String("bookingId", booked.ID))
+}
+
 // sendTelegramNotification sends a Telegram notification about new booking
 func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId string) {
 	// Get setting to check if Telegram is enabled
@@ -270,6 +310,83 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *mo
 			"<b>Phone:</b> %s\n"+
 			"<b>Email:</b> %s\n"+
 			"<b>Sosial Media:</b> %s",
+		category.Name,
+		isGroupStr,
+		dateStr,
+		timeStr,
+		locationStr,
+		priceStr,
+		user.FullName,
+		user.Phone,
+		user.Email,
+		socialMedia,
+	)
+
+	return message
+}
+
+func (s *BookedService) formatDiscordMessage(booked *models.Booked, setting *models.Setting) string {
+	if booked.User.ID == "" || booked.Schedule.ID == "" {
+		return ""
+	}
+
+	schedule := booked.Schedule
+	category := schedule.Categories
+	user := booked.User
+
+	timezone := "UTC"
+	if setting.Timezone != nil && *setting.Timezone != "" {
+		timezone = *setting.Timezone
+	}
+
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		logger.Log.Warn("Gagal load timezone, menggunakan UTC", zap.String("timezone", timezone), zap.Error(err))
+		loc = time.UTC
+	}
+
+	scheduleDate := schedule.DateTime.In(loc)
+	dateStr := scheduleDate.Format("01/02/2006")
+	timeStr := scheduleDate.Format("3:04 PM")
+
+	isGroupStr := "No"
+	if category.IsGroup {
+		isGroupStr = "Yes"
+	}
+
+	priceStr := s.getPrice(category.IsFree, category.IsPayAsYouWish, category.Price)
+
+	locationStr := "N/A"
+	if category.Location != nil && *category.Location != "" {
+		locationStr = *category.Location
+	}
+
+	socialMedia := ""
+	if user.Ig != nil && *user.Ig != "" {
+		socialMedia = *user.Ig
+	}
+	if user.Fb != nil && *user.Fb != "" {
+		if socialMedia != "" {
+			socialMedia += " / "
+		}
+		socialMedia += *user.Fb
+	}
+	if socialMedia == "" {
+		socialMedia = "N/A"
+	}
+
+	message := fmt.Sprintf(
+		"**New Booking Request**\n"+
+			"**Class:** %s\n"+
+			"**is Group:** %s\n"+
+			"**Date:** %s\n"+
+			"**Time:** %s\n"+
+			"**Location:** %s\n"+
+			"**Price:** %s\n"+
+			"**Name:** %s\n"+
+			"**Phone:** %s\n"+
+			"**Email:** %s\n"+
+			"**Sosial Media:** %s",
 		category.Name,
 		isGroupStr,
 		dateStr,
