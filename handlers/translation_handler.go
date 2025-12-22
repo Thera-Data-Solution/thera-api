@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+	"thera-api/models"
 	"thera-api/services"
 
 	"github.com/gin-gonic/gin"
@@ -49,7 +51,39 @@ func (h *TranslationHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	translations, err := h.Service.GetAllTranslations(tenantId)
+	// pagination
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "20")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 20
+	}
+
+	// advanced filter dari query param
+	var filter models.TranslationFilter
+
+	if v := c.Query("locale"); v != "" {
+		filter.Locale = &v
+	}
+	if v := c.Query("namespace"); v != "" {
+		filter.Namespace = &v
+	}
+	if v := c.Query("key"); v != "" {
+		filter.Key = &v
+	}
+	if v := c.Query("value"); v != "" {
+		filter.Value = &v
+	}
+	if v := c.Query("search"); v != "" {
+		filter.Search = &v
+	}
+
+	translations, err := h.Service.GetAllTranslations(tenantId, filter, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

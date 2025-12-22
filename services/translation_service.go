@@ -1,6 +1,7 @@
 package services
 
 import (
+	"math"
 	"thera-api/models"
 	"thera-api/repositories"
 )
@@ -9,8 +10,37 @@ type TranslationService struct {
 	Repo *repositories.TranslationRepository
 }
 
-func (s *TranslationService) GetAllTranslations(tenantId string) ([]models.Translation, error) {
-	return s.Repo.FindAll(tenantId)
+// GetAllTranslations dengan advanced filter + pagination
+func (s *TranslationService) GetAllTranslations(tenantId string, filter models.TranslationFilter, page, limit int) (*models.PaginatedTranslations, error) {
+	// normalisasi page & limit di level service supaya konsisten
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	// batasi maksimal, tapi masih cukup besar untuk use case real
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	items, total, err := s.Repo.FindFiltered(tenantId, filter, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = int(math.Ceil(float64(total) / float64(limit)))
+	}
+
+	return &models.PaginatedTranslations{
+		Data:       items,
+		Page:       page,
+		Limit:      limit,
+		TotalItems: total,
+		TotalPages: totalPages,
+	}, nil
 }
 
 func (s *TranslationService) GetTranslationByID(id string, tenantId string) (*models.Translation, error) {
