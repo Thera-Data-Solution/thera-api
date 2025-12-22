@@ -18,8 +18,8 @@ func (r *CategoriesRepository) FindAll(tenant string) ([]models.Categories, erro
 	var categories []models.Categories
 	err := r.DB.
 		Where(`tenant_id = ? AND disable=false`, tenant).
-		Find(&categories).
 		Order("name ASC").
+		Find(&categories).
 		Error
 	return categories, err
 }
