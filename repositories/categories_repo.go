@@ -16,7 +16,11 @@ func (r *CategoriesRepository) Create(category *models.Categories) error {
 
 func (r *CategoriesRepository) FindAll(tenant string) ([]models.Categories, error) {
 	var categories []models.Categories
-	err := r.DB.Where(`tenant_id = ? AND disable=false`, tenant).Find(&categories).Error
+	err := r.DB.
+		Where(`tenant_id = ? AND disable=false`, tenant).
+		Find(&categories).
+		Order("name ASC").
+		Error
 	return categories, err
 }
 
