@@ -1,15 +1,24 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/datatypes"
+)
 
 type Booked struct {
-	ID         string    `json:"id" gorm:"column:id"`
-	UserId     string    `json:"userId" gorm:"column:userId"`
-	ScheduleId string    `json:"scheduleId" gorm:"column:scheduleId"`
-	BookedAt   time.Time `json:"bookedAt" gorm:"column:bookedAt"`
-	TenantId   *string   `json:"tenantId,omitempty" gorm:"column:tenantId"`
-}
+	ID         string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserId     string    `json:"userId" gorm:"not null;index"`
+	ScheduleId string    `json:"scheduleId" gorm:"not null;index"`
+	BookedAt   time.Time `json:"bookedAt" gorm:"autoCreateTime"`
+	Testimoni  *string   `json:"testimoni,omitempty"`
+	ShowTesti  *bool     `json:"showTesti,omitempty"`
+	Anonymous  *bool     `json:"anonymous,omitempty"`
 
-func (Booked) TableName() string {
-	return "Booked"
+	TenantId *string `json:"tenantId,omitempty" gorm:"index"`
+
+	CustomAnswer datatypes.JSON `json:"customAnswers,omitempty" gorm:"type:jsonb"`
+
+	User     User      `json:"user" gorm:"foreignKey:UserId;references:ID"`
+	Schedule Schedules `json:"schedule" gorm:"foreignKey:ScheduleId;references:ID"`
 }

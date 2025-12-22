@@ -3,7 +3,6 @@ package services
 import (
 	"thera-api/models"
 	"thera-api/repositories"
-	"thera-api/utils"
 	"time"
 )
 
@@ -21,7 +20,6 @@ func (s *TenantService) GetAllTenants() ([]models.Tenant, error) {
 
 func (s *TenantService) CreateTenant(name string, logo *string) (*models.Tenant, error) {
 	tenant := &models.Tenant{
-		ID:        utils.GenerateID(),
 		Name:      name,
 		Logo:      logo,
 		IsActive:  true,

@@ -7,7 +7,6 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 var DB *gorm.DB
@@ -24,10 +23,7 @@ func ConnectDatabase() {
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-			NoLowerCase:   true,
-		},
+		PrepareStmt: false,
 	})
 	if err != nil {
 		log.Fatal("❌ failed to connect database:", err)

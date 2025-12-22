@@ -15,7 +15,7 @@ func (r *SessionRepository) CreateSession(s *models.Session) error {
 }
 
 func (r *SessionRepository) DeleteByTenantUserId(s *models.Session) error {
-	return r.DB.Where(`"tenantUserId" = ?`, s.TenantUserId).Delete(&models.Session{}).Error
+	return r.DB.Where(`tenant_user_id = ?`, s.TenantUserId).Delete(&models.Session{}).Error
 }
 
 func (r *SessionRepository) FindByToken(token string) (*models.Session, error) {

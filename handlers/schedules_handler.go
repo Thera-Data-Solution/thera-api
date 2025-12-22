@@ -65,7 +65,22 @@ func (h *SchedulesHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, schedules)
 }
 
-// GET /schedules/:id
+func (h *SchedulesHandler) GetByCatID(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	if tenantId == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
+		return
+	}
+	catId := c.Param("id")
+	date := c.Query("date")
+	schedule, err := h.Service.GetScheduleByCatID(catId, tenantId, date)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "jadwal tidak ditemukan"})
+		return
+	}
+	c.JSON(http.StatusOK, schedule)
+}
+
 func (h *SchedulesHandler) GetByID(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
 	if tenantId == "" {

@@ -2,12 +2,13 @@ package services
 
 import (
 	"errors"
-	"fmt"
+	"thera-api/logger"
 	"thera-api/models"
 	"thera-api/repositories"
 	"time"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,6 +19,11 @@ type AuthAdminService struct {
 }
 
 func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId string) (*models.Session, error) {
+	_, err := s.TenantRepo.FindByID(tenantId)
+	if err != nil {
+		return nil, errors.New("tenant tidak ditemukan")
+	}
+
 	existing, _ := s.AdminRepo.FindByEmailAndTenant(email, tenantId)
 	if existing.ID != "" {
 		return nil, errors.New("pengguna dengan email tersebut sudah terdaftar")
@@ -37,7 +43,6 @@ func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId str
 	}
 
 	admin := models.TenantUser{
-		ID:       uuid.New().String(),
 		Email:    email,
 		Password: string(hashed),
 		FullName: fullName,
@@ -54,7 +59,6 @@ func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId str
 	// otomatis login => buat token session
 	token := uuid.NewString()
 	session := &models.Session{
-		ID:           uuid.New().String(),
 		Token:        token,
 		TenantUserId: &admin.ID,
 		TenantId:     tenantId,
@@ -72,19 +76,20 @@ func (s *AuthAdminService) RegisterAdmin(email, password, fullName, tenantId str
 func (s *AuthAdminService) LoginAdmin(email, password, tenantId string) (*models.Session, error) {
 	admin, err := s.AdminRepo.FindByEmailAndTenant(email, tenantId)
 	if err != nil {
+		logger.Log.Warn("User not found", zap.String("email", email), zap.String("tenantId", tenantId))
+
 		return nil, errors.New("pengguna tidak ditemukan")
 	}
 
-	fmt.Println("HASH:", admin.Password)
-	fmt.Println("RAW :", password)
+	logger.Log.Info("Attempt login", zap.String("email", email), zap.String("tenantId", tenantId))
+
 	err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password))
 	if err != nil {
-		fmt.Println("bcrypt error:", err)
+		logger.Log.Warn("Password mismatch", zap.String("email", email))
 		return nil, errors.New("password salah")
 	}
 
 	session := &models.Session{
-		ID:           uuid.New().String(),
 		Token:        uuid.New().String(),
 		TenantUserId: &admin.ID,
 		TenantId:     admin.TenantId,
@@ -93,12 +98,17 @@ func (s *AuthAdminService) LoginAdmin(email, password, tenantId string) (*models
 	}
 
 	if err := s.SessionRepo.DeleteByTenantUserId(session); err != nil {
+		logger.Log.Warn("Login failed delete session", zap.String("email", email))
 		return nil, err
 	}
 
 	if err := s.SessionRepo.CreateSession(session); err != nil {
+		logger.Log.Warn("Login failed create session", zap.String("email", email))
+
 		return nil, err
 	}
+
+	logger.Log.Info("Login successful", zap.String("email", email))
 
 	return session, nil
 }

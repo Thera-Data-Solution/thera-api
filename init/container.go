@@ -9,16 +9,23 @@ import (
 )
 
 type Container struct {
-	UserHandler     *handlers.AuthUserHandler
-	AdminHandler    *handlers.AuthAdminHandler
-	Middlewares     *middlewares.IsAuthMiddleware
-	AtLeastAdmin    *middlewares.IsAdminMiddleware
-	OnlySU          *middlewares.IsSUMiddleware
-	TenantHandler   *handlers.TenantHandler
-	CategoryHandler *handlers.CategoriesHandler
-	ScheduleHandler *handlers.SchedulesHandler
-	BookHandler     *handlers.BookedHandler
-	HeroHandler     *handlers.HeroHandler
+	UserHandler        *handlers.AuthUserHandler
+	AdminHandler       *handlers.AuthAdminHandler
+	Middlewares        *middlewares.IsAuthMiddleware
+	AtLeastAdmin       *middlewares.IsAdminMiddleware
+	OnlySU             *middlewares.IsSUMiddleware
+	TenantHandler      *handlers.TenantHandler
+	CategoryHandler    *handlers.CategoriesHandler
+	ScheduleHandler    *handlers.SchedulesHandler
+	BookHandler        *handlers.BookedHandler
+	HeroHandler        *handlers.HeroHandler
+	LinkHandler        *handlers.LinkHandler
+	ArticleHandler     *handlers.ArticleHandler
+	GalleryHandler     *handlers.GalleryHandler
+	TranslationHandler *handlers.TranslationHandler
+	SettingHandler     *handlers.SettingHandler
+	PartnerHandler     *handlers.PartnerHandler
+	TenantUserHandler  *handlers.UserHandler
 }
 
 func NewContainer() *Container {
@@ -33,22 +40,53 @@ func NewContainer() *Container {
 	scheduleRepo := &repositories.SchedulesRepository{DB: db}
 	bookingRepo := &repositories.BookedRepository{DB: db}
 	heroRepo := &repositories.HeroRepository{DB: db}
+	linkRepo := &repositories.LinkRepository{DB: db}
+	articleRepo := &repositories.ArticleRepository{DB: db}
+	galleryRepo := &repositories.GalleryRepository{DB: db}
+	translateRepo := &repositories.TranslationRepository{DB: db}
+	settingRepo := repositories.NewSettingRepo(db)
+	partnerRepo := &repositories.PartnerRepository{DB: db}
+	passwordResetRepo := repositories.NewPasswordResetRepository(db)
 
-	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo}
-	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo}
+	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
+	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
+	passwordResetService := services.NewPasswordResetService(passwordResetRepo, userRepo, adminRepo, settingRepo)
+	profileService := services.NewProfileService(userRepo, adminRepo)
 	tenantService := &services.TenantService{TenantRepo: tenantRepo}
 	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
-	bookingService := &services.BookedService{BookingRepo: bookingRepo, ScheduleRepo: scheduleRepo}
+	bookingService := services.NewBookedService(bookingRepo, scheduleRepo, settingRepo)
 	heroService := &services.HeroService{Repo: heroRepo}
+	linkService := &services.LinkService{Repo: linkRepo}
+	articleService := &services.ArticleService{Repo: articleRepo}
+	galleryService := &services.GalleryService{GalleryRepo: galleryRepo}
+	translateService := &services.TranslationService{Repo: translateRepo}
+	settingService := services.NewSettingService(settingRepo)
+	partnerService := &services.PartnerService{PartnerRepo: partnerRepo}
+	userService := &services.UserService{UserRepo: userRepo}
 
-	userHandler := &handlers.AuthUserHandler{Service: authUserService}
-	adminHandler := &handlers.AuthAdminHandler{Service: authAdminService}
+	userHandler := &handlers.AuthUserHandler{
+		Service:            authUserService,
+		PasswordResetService: passwordResetService,
+		ProfileService:      profileService,
+	}
+	adminHandler := &handlers.AuthAdminHandler{
+		Service:            authAdminService,
+		PasswordResetService: passwordResetService,
+		ProfileService:      profileService,
+	}
 	tenantHandler := &handlers.TenantHandler{Service: tenantService}
 	categoryHandler := &handlers.CategoriesHandler{Service: categoryService}
 	scheduleHandler := &handlers.SchedulesHandler{Service: scheduleService}
 	bookHandler := &handlers.BookedHandler{Service: bookingService}
 	heroHandler := &handlers.HeroHandler{Service: heroService}
+	linkHandler := &handlers.LinkHandler{Service: linkService}
+	articleHandler := &handlers.ArticleHandler{Service: articleService}
+	galleryHandler := &handlers.GalleryHandler{Service: galleryService}
+	translateHandler := &handlers.TranslationHandler{Service: translateService}
+	settingHandler := handlers.NewSettingHandler(settingService)
+	partnerHandler := &handlers.PartnerHandler{Service: partnerService}
+	tenantUserHandler := &handlers.UserHandler{Service: userService}
 
 	authAdminMiddleware := &middlewares.IsAuthMiddleware{
 		SessionRepo: sessionRepo,
@@ -59,15 +97,22 @@ func NewContainer() *Container {
 	onlySUMiddleware := &middlewares.IsSUMiddleware{}
 
 	return &Container{
-		UserHandler:     userHandler,
-		AdminHandler:    adminHandler,
-		Middlewares:     authAdminMiddleware,
-		AtLeastAdmin:    atLeastAdminMiddleware,
-		TenantHandler:   tenantHandler,
-		OnlySU:          onlySUMiddleware,
-		CategoryHandler: categoryHandler,
-		ScheduleHandler: scheduleHandler,
-		BookHandler:     bookHandler,
-		HeroHandler:     heroHandler,
+		UserHandler:        userHandler,
+		AdminHandler:       adminHandler,
+		Middlewares:        authAdminMiddleware,
+		AtLeastAdmin:       atLeastAdminMiddleware,
+		TenantHandler:      tenantHandler,
+		OnlySU:             onlySUMiddleware,
+		CategoryHandler:    categoryHandler,
+		ScheduleHandler:    scheduleHandler,
+		BookHandler:        bookHandler,
+		HeroHandler:        heroHandler,
+		LinkHandler:        linkHandler,
+		ArticleHandler:     articleHandler,
+		GalleryHandler:     galleryHandler,
+		TranslationHandler: translateHandler,
+		SettingHandler:     settingHandler,
+		PartnerHandler:     partnerHandler,
+		TenantUserHandler:  tenantUserHandler,
 	}
 }

@@ -12,7 +12,7 @@ type TenantUserRepository struct {
 
 func (r *TenantUserRepository) FindByEmailAndTenant(email, tenantId string) (*models.TenantUser, error) {
 	var u models.TenantUser
-	err := r.DB.Where(`email = ? AND "tenantId" = ?`, email, tenantId).First(&u).Error
+	err := r.DB.Where(`email = ? AND tenant_id = ?`, email, tenantId).First(&u).Error
 	return &u, err
 }
 
@@ -24,4 +24,8 @@ func (r *TenantUserRepository) FindByID(idToken string) (*models.TenantUser, err
 	var user models.TenantUser
 	err := r.DB.Where("id = ?", idToken).First(&user).Error
 	return &user, err
+}
+
+func (r *TenantUserRepository) Update(admin *models.TenantUser) error {
+	return r.DB.Save(admin).Error
 }

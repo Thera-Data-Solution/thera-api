@@ -11,6 +11,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -69,12 +70,10 @@ func NewMinIOUploader() (*MinIOUploader, error) {
 func (u *MinIOUploader) UploadFile(ctx context.Context, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
 	defer file.Close()
 
-	// Pastikan pointer file di awal
 	if _, err := file.Seek(0, 0); err != nil {
 		return "", fmt.Errorf("gagal reset pointer file: %w", err)
 	}
 
-	// Baca semua file ke buffer (agar bisa di-decode berulang)
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return "", fmt.Errorf("gagal membaca file: %w", err)
@@ -86,7 +85,6 @@ func (u *MinIOUploader) UploadFile(ctx context.Context, file multipart.File, fil
 		return "", fmt.Errorf("gagal decode gambar: %w", err)
 	}
 
-	// Kompres ke WebP
 	var buf bytes.Buffer
 	quality := float32(80)
 	for {
@@ -102,7 +100,6 @@ func (u *MinIOUploader) UploadFile(ctx context.Context, file multipart.File, fil
 		quality -= 5
 	}
 
-	// Gunakan timestamp sebagai nama file
 	timestamp := time.Now().UnixMilli()
 	objectName := fmt.Sprintf("logos/%d.webp", timestamp)
 
@@ -117,6 +114,33 @@ func (u *MinIOUploader) UploadFile(ctx context.Context, file multipart.File, fil
 	}
 
 	fmt.Printf("✅ File berhasil diupload: %s (%.2f KB)\n", info.Key, float64(info.Size)/1024)
+	finalURL := fmt.Sprintf("%s/%s/%s", strings.TrimRight(u.Endpoint, "/"), u.BucketName, objectName)
+	return finalURL, nil
+}
+
+func (u *MinIOUploader) UploadWithoutDecode(ctx context.Context, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+	defer file.Close()
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return "", fmt.Errorf("gagal reset pointer file: %w", err)
+	}
+
+	ext := filepath.Ext(fileHeader.Filename)
+	timestamp := time.Now().UnixMilli()
+	objectName := fmt.Sprintf("logos/%d%s", timestamp, ext)
+
+	info, err := u.Client.PutObject(ctx, u.BucketName, objectName, file, fileHeader.Size, minio.PutObjectOptions{
+		ContentType: fileHeader.Header.Get("Content-Type"),
+		UserMetadata: map[string]string{
+			"x-amz-acl": "public-read",
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("operasi PutObject MinIO gagal: %w", err)
+	}
+
+	fmt.Printf("✅ File berhasil diupload tanpa kompresi: %s (%.2f KB)\n", info.Key, float64(info.Size)/1024)
+
 	finalURL := fmt.Sprintf("%s/%s/%s", strings.TrimRight(u.Endpoint, "/"), u.BucketName, objectName)
 	return finalURL, nil
 }

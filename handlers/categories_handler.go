@@ -1,14 +1,17 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"thera-api/models"
 	"thera-api/services"
 	"thera-api/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
+	"gorm.io/datatypes"
 )
 
 type CategoriesHandler struct {
@@ -35,7 +38,24 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	isPayAsYouWish := c.PostForm("isPayAsYouWish") == "true"
 	isManual := c.PostForm("isManual") == "true"
 	disable := c.PostForm("disable") == "true"
+	customFieldsRaw := c.PostForm("customFields")
+
 	tenantId := auth["tenantId"].(string)
+
+	var customFields datatypes.JSON
+
+	if customFieldsRaw != "" {
+		var temp []models.CategoryCustomField
+
+		if err := json.Unmarshal([]byte(customFieldsRaw), &temp); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "format customFields tidak valid",
+			})
+			return
+		}
+
+		customFields = datatypes.JSON(customFieldsRaw)
+	}
 
 	var imageURL *string
 	file, fileHeader, err := c.Request.FormFile("image")
@@ -51,7 +71,7 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 
 	category, err := h.Service.CreateCategory(
 		name, &description, &descriptionEn, slug, imageURL, start, end, &location, &price,
-		isGroup, isFree, isPayAsYouWish, isManual, disable, &tenantId,
+		isGroup, isFree, isPayAsYouWish, isManual, disable, &tenantId, customFields,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -108,8 +128,24 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	isManual := c.PostForm("isManual") == "true"
 	disable := c.PostForm("disable") == "true"
 	tenantId := auth["tenantId"].(string)
+	customFieldsRaw := c.PostForm("customFields")
 
 	var imageURL *string
+	var customFields datatypes.JSON
+
+	if customFieldsRaw != "" {
+		var temp []models.CategoryCustomField
+
+		if err := json.Unmarshal([]byte(customFieldsRaw), &temp); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "format customFields tidak valid",
+			})
+			return
+		}
+
+		customFields = datatypes.JSON(customFieldsRaw)
+	}
+
 	file, fileHeader, err := c.Request.FormFile("image")
 	if err == nil {
 		uploader, _ := utils.NewMinIOUploader()
@@ -129,7 +165,7 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 
 	category, err := h.Service.UpdateCategory(
 		id, &name, &description, &descriptionEn, &slug, imageURL, &start, &end,
-		&location, &price, &isGroup, &isFree, &isPayAsYouWish, &isManual, &disable, tenantId,
+		&location, &price, &isGroup, &isFree, &isPayAsYouWish, &isManual, &disable, tenantId, customFields,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

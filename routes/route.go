@@ -8,16 +8,17 @@ import (
 
 func SetupRoutes(r *gin.Engine, c *initpkg.Container) {
 	api := r.Group("/api")
-
-	// panggil file route lain
 	RegisterAuthRoutes(api, c)
 	RegisterTenantRoutes(api, c)
 	RegisterCategoriesRoutes(api, c)
 	RegisterSchedulesRoutes(api, c)
 	RegisterBookingRoutes(api, c)
 	RegisterHeroRoutes(api, c)
-
-	// nanti kalau ada modul lain:
-	// RegisterEventRoutes(api, c)
-	// RegisterGalleryRoutes(api, c)
+	RegisterLinkRoutes(api, c)
+	RegisterArticleRoutes(api, c)
+	RegisterGalleryRoutes(api, c)
+	RegisterTranslationRoutes(api, c)
+	RegisterSettingRoutes(api, c)
+	RegisterPartnerRoutes(api, c)
+	RegisterUserRoutes(api, c)
 }

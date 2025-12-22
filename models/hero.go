@@ -1,18 +1,14 @@
 package models
 
 type Hero struct {
-	ID          string  `json:"id" gorm:"column:id"`
-	Title       string  `json:"title" gorm:"column:title"`
-	Subtitle    *string `json:"subtitle,omitempty" gorm:"column:subtitle"`
-	Description *string `json:"description,omitempty" gorm:"column:description"`
-	Image       *string `json:"image,omitempty" gorm:"column:image"`
-	ButtonText  *string `json:"buttonText,omitempty" gorm:"column:buttonText"`
-	ButtonLink  *string `json:"buttonLink,omitempty" gorm:"column:buttonLink"`
-	ThemeType   *string `json:"themeType,omitempty" gorm:"column:themeType"`
-	IsActive    bool    `json:"isActive" gorm:"column:isActive"`
-	TenantId    *string `json:"tenantId,omitempty" gorm:"column:tenantId"`
-}
-
-func (Hero) TableName() string {
-	return "Hero"
+	ID          string  `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	Title       string  `json:"title" gorm:"not null"`
+	Subtitle    *string `json:"subtitle,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Image       *string `json:"image,omitempty"`
+	ButtonText  *string `json:"buttonText,omitempty"`
+	ButtonLink  *string `json:"buttonLink,omitempty"`
+	ThemeType   *string `json:"themeType,omitempty"`
+	IsActive    bool    `json:"isActive" gorm:"default:true"`
+	TenantId    *string `json:"tenantId,omitempty" gorm:"index"`
 }

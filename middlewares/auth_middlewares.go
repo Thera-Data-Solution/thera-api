@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
 	"thera-api/repositories"
 
@@ -28,6 +27,12 @@ func NewAuthMiddleware(
 
 func (m *IsAuthMiddleware) Handle() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// ✅ Abaikan preflight CORS
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent) // 204
+			return
+		}
+
 		token := c.GetHeader("token")
 		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "token tidak ditemukan"})
@@ -67,7 +72,7 @@ func (m *IsAuthMiddleware) Handle() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		fmt.Println(session)
+
 		c.Set("auth", gin.H{
 			"user":         user,
 			"session":      session,
