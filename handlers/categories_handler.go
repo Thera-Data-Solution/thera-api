@@ -114,10 +114,10 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	}
 	auth := authData.(gin.H)
 	id := c.Param("id")
-	name := c.PostForm("name")
+	nameRaw := strings.TrimSpace(c.PostForm("name"))
 	description := c.PostForm("description")
 	descriptionEn := c.PostForm("descriptionEn")
-	slug := c.PostForm("slug")
+	slugInput := strings.TrimSpace(c.PostForm("slug"))
 	start := utils.ParseInt(c.PostForm("start"))
 	end := utils.ParseInt(c.PostForm("end"))
 	location := c.PostForm("location")
@@ -163,8 +163,18 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 		}
 	}
 
+	var slugPtr *string
+	if slugInput != "" {
+		slugPtr = &slugInput
+	}
+
+	var namePtr *string
+	if nameRaw != "" {
+		namePtr = &nameRaw
+	}
+
 	category, err := h.Service.UpdateCategory(
-		id, &name, &description, &descriptionEn, &slug, imageURL, &start, &end,
+		id, namePtr, &description, &descriptionEn, slugPtr, imageURL, &start, &end,
 		&location, &price, &isGroup, &isFree, &isPayAsYouWish, &isManual, &disable, tenantId, customFields,
 	)
 	if err != nil {

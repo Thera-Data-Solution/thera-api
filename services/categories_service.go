@@ -1,10 +1,16 @@
 package services
 
 import (
+	"errors"
+	"fmt"
+	"regexp"
+	"strings"
 	"thera-api/models"
 	"thera-api/repositories"
+	"time"
 
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type CategoriesService struct {
@@ -35,11 +41,20 @@ func (s *CategoriesService) CreateCategory(
 	tenantId *string,
 	customFields datatypes.JSON,
 ) (*models.Categories, error) {
+	if tenantId == nil || strings.TrimSpace(*tenantId) == "" {
+		return nil, errors.New("tenantId tidak boleh kosong")
+	}
+
+	finalSlug, err := s.ensureUniqueSlug(s.pickSlug(slug, name), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	category := &models.Categories{
 		Name:           name,
 		Description:    description,
 		DescriptionEn:  descriptionEn,
-		Slug:           slug,
+		Slug:           finalSlug,
 		Image:          image,
 		Start:          start,
 		End:            end,
@@ -88,9 +103,6 @@ func (s *CategoriesService) UpdateCategory(
 	if descriptionEn != nil {
 		category.DescriptionEn = descriptionEn
 	}
-	if slug != nil {
-		category.Slug = *slug
-	}
 	if image != nil {
 		category.Image = image
 	}
@@ -122,6 +134,19 @@ func (s *CategoriesService) UpdateCategory(
 		category.Disable = *disable
 	}
 
+	slugSource := category.Slug
+	if slug != nil && strings.TrimSpace(*slug) != "" {
+		slugSource = *slug
+	} else if name != nil && strings.TrimSpace(*name) != "" {
+		slugSource = *name
+	}
+
+	finalSlug, err := s.ensureUniqueSlug(s.slugify(slugSource), &category.ID)
+	if err != nil {
+		return nil, err
+	}
+	category.Slug = finalSlug
+
 	if err := s.CategoriesRepo.Update(category); err != nil {
 		return nil, err
 	}
@@ -131,4 +156,51 @@ func (s *CategoriesService) UpdateCategory(
 
 func (s *CategoriesService) DeleteCategory(id string, tenantId string) error {
 	return s.CategoriesRepo.Delete(id, tenantId)
+}
+
+func (s *CategoriesService) pickSlug(slug, fallback string) string {
+	if trimmed := strings.TrimSpace(slug); trimmed != "" {
+		return trimmed
+	}
+	return fallback
+}
+
+func (s *CategoriesService) slugify(input string) string {
+	lower := strings.ToLower(strings.TrimSpace(input))
+	re := regexp.MustCompile(`[^\p{L}\p{N}]+`)
+	slug := re.ReplaceAllString(lower, "-")
+	slug = strings.Trim(slug, "-")
+	if slug == "" {
+		return "kategori"
+	}
+	return slug
+}
+
+func (s *CategoriesService) ensureUniqueSlug(base string, excludeID *string) (string, error) {
+	seedSlug := s.slugify(base)
+	baseSlug := seedSlug
+	slugCandidate := baseSlug
+	counter := 1
+	addedTimestamp := false
+
+	for {
+		existing, err := s.CategoriesRepo.FindBySlug(slugCandidate)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", err
+		}
+
+		if existing == nil || (excludeID != nil && existing.ID == *excludeID) {
+			return slugCandidate, nil
+		}
+
+		if !addedTimestamp {
+			baseSlug = fmt.Sprintf("%s-%d", seedSlug, time.Now().Unix())
+			slugCandidate = baseSlug
+			addedTimestamp = true
+			continue
+		}
+
+		slugCandidate = fmt.Sprintf("%s-%d", baseSlug, counter)
+		counter++
+	}
 }
