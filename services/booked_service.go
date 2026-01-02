@@ -60,12 +60,21 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string, custo
 	}
 
 	logger.Log.Info("Booking berhasil dibuat", zap.String("userId", userId), zap.String("scheduleId", scheduleId))
-
-	// Send notifications asynchronously
-	s.sendTelegramNotification(userId, scheduleId, tenantId)
-	// go s.sendDiscordNotification(userId, scheduleId, tenantId)
+	bookedFull, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
+	if err == nil {
+		// Kirim object bookedFull langsung ke fungsi notifikasi
+		go s.sendTelegramNotificationAsync(bookedFull, tenantId)
+		// go s.sendDiscordNotificationAsync(bookedFull, tenantId)
+	} else {
+		logger.Log.Error("Gagal mengambil data untuk notifikasi", zap.Error(err))
+	}
 
 	return nil
+	// Send notifications asynchronously
+	// go s.sendTelegramNotification(userId, scheduleId, tenantId)
+	// go s.sendDiscordNotification(userId, scheduleId, tenantId)
+
+	// return nil
 }
 
 func (s *BookedService) GetAll(tenantId string, limit, offset int) ([]models.Booked, int64, error) {
@@ -207,35 +216,28 @@ func (s *BookedService) sendDiscordNotification(userId, scheduleId, tenantId str
 	logger.Log.Info("Notifikasi Discord berhasil dikirim", zap.String("bookingId", booked.ID))
 }
 
-// sendTelegramNotification sends a Telegram notification about new booking
-func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId string) {
-	logger.Log.Info("Telegram: START", zap.String("tenantId", tenantId))
+// Contoh untuk Telegram (berlaku sama untuk Discord)
+func (s *BookedService) sendTelegramNotificationAsync(booked *models.Booked, tenantId string) {
+	// Tambahkan recover agar jika panic tidak membuat app crash di prod
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Log.Error("Recovered from panic in Telegram notification", zap.Any("error", r))
+		}
+	}()
 
 	setting, err := s.SettingRepo.FindByTenantId(tenantId)
-	logger.Log.Info("Telegram: AFTER FindByTenantId")
-
 	if err != nil {
-		logger.Log.Warn("Setting tidak ditemukan untuk Telegram", zap.String("tenantId", tenantId), zap.Error(err))
+		logger.Log.Warn("Setting tidak ditemukan untuk Telegram", zap.Error(err))
 		return
 	}
 
-	logger.Log.Info("Telegram: Setting found")
-
-	// Check if Telegram is enabled
 	if !utils.IsTelegramEnabled(setting) {
-		logger.Log.Debug("Telegram tidak diaktifkan untuk tenant", zap.String("tenantId", tenantId))
 		return
 	}
 
-	booked, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
-	if err != nil {
-		logger.Log.Error("Gagal mengambil data booking untuk Telegram", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.Error(err))
-		return
-	}
-
+	// Gunakan data booked yang sudah di-passing, bukan query lagi
 	message := s.formatTelegramMessage(booked, setting)
 	if message == "" {
-		logger.Log.Warn("Pesan Telegram kosong", zap.String("bookingId", booked.ID))
 		return
 	}
 
@@ -245,11 +247,11 @@ func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId st
 	}
 
 	if err := utils.SendTelegramHTML(cfg, message); err != nil {
-		logger.Log.Error("Gagal mengirim notifikasi Telegram", zap.String("bookingId", booked.ID), zap.Error(err))
+		logger.Log.Error("Gagal mengirim notifikasi Telegram ke API", zap.Error(err))
 		return
 	}
 
-	logger.Log.Info("Notifikasi Telegram berhasil dikirim", zap.String("bookingId", booked.ID))
+	logger.Log.Info("Notifikasi Telegram berhasil dikirim")
 }
 
 func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *models.Setting) string {
