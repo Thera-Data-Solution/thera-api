@@ -63,8 +63,8 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string, custo
 	logger.Log.Info("Booking berhasil dibuat", zap.String("userId", userId), zap.String("scheduleId", scheduleId))
 
 	// Send notifications asynchronously
-	go s.sendTelegramNotification(userId, scheduleId, tenantId)
-	go s.sendDiscordNotification(userId, scheduleId, tenantId)
+	s.sendTelegramNotification(userId, scheduleId, tenantId)
+	// go s.sendDiscordNotification(userId, scheduleId, tenantId)
 
 	return nil
 }
