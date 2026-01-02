@@ -35,16 +35,15 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string, custo
 		logger.Log.Warn("Schedule tidak ditemukan", zap.String("scheduleId", scheduleId))
 		return err
 	}
-
 	if schedule.Status != "ENABLE" {
 		logger.Log.Warn("Schedule tidak tersedia untuk dibooking", zap.String("scheduleId", scheduleId))
 		return errors.New("jadwal tidak tersedia untuk dibooking")
 	}
-
-	schedule.Status = "BOOKED"
-	if err := s.ScheduleRepo.Update(schedule); err != nil {
-		logger.Log.Error("Gagal update status schedule", zap.String("scheduleId", scheduleId), zap.Error(err))
-		return err
+	if !schedule.Categories.IsGroup {
+		schedule.Status = "BOOKED"
+		if err := s.ScheduleRepo.Update(schedule); err != nil {
+			return err
+		}
 	}
 
 	booked := &models.Booked{
