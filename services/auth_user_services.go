@@ -56,7 +56,7 @@ func (s *AuthUserService) RegisterUser(
 		return nil, errors.New("pengguna dengan nomor handphone tersebut sudah terdaftar")
 	}
 
-	avatar := "https://avatar.iran.liara.run/username?username=" + fullName
+	avatar := "https://api.dicebear.com/9.x/thumbs/svg?seed=" + fullName
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		logger.Log.Error("Gagal hash password", zap.Error(err))

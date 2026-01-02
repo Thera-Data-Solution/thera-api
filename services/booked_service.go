@@ -209,12 +209,17 @@ func (s *BookedService) sendDiscordNotification(userId, scheduleId, tenantId str
 
 // sendTelegramNotification sends a Telegram notification about new booking
 func (s *BookedService) sendTelegramNotification(userId, scheduleId, tenantId string) {
-	// Get setting to check if Telegram is enabled
+	logger.Log.Info("Telegram: START", zap.String("tenantId", tenantId))
+
 	setting, err := s.SettingRepo.FindByTenantId(tenantId)
+	logger.Log.Info("Telegram: AFTER FindByTenantId")
+
 	if err != nil {
 		logger.Log.Warn("Setting tidak ditemukan untuk Telegram", zap.String("tenantId", tenantId), zap.Error(err))
 		return
 	}
+
+	logger.Log.Info("Telegram: Setting found")
 
 	// Check if Telegram is enabled
 	if !utils.IsTelegramEnabled(setting) {
