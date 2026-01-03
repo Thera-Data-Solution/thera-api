@@ -62,19 +62,13 @@ func (s *BookedService) Create(userId, scheduleId string, tenantId string, custo
 	logger.Log.Info("Booking berhasil dibuat", zap.String("userId", userId), zap.String("scheduleId", scheduleId))
 	bookedFull, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
 	if err == nil {
-		// Kirim object bookedFull langsung ke fungsi notifikasi
 		go s.sendTelegramNotificationAsync(bookedFull, tenantId)
-		// go s.sendDiscordNotificationAsync(bookedFull, tenantId)
+		go s.sendDiscordNotification(userId, scheduleId, tenantId)
 	} else {
 		logger.Log.Error("Gagal mengambil data untuk notifikasi", zap.Error(err))
 	}
 
 	return nil
-	// Send notifications asynchronously
-	// go s.sendTelegramNotification(userId, scheduleId, tenantId)
-	// go s.sendDiscordNotification(userId, scheduleId, tenantId)
-
-	// return nil
 }
 
 func (s *BookedService) GetAll(tenantId string, limit, offset int) ([]models.Booked, int64, error) {
