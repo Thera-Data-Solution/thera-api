@@ -218,7 +218,8 @@ func (s *BookedService) sendDiscordNotification(userId, scheduleId, tenantId str
 
 // Contoh untuk Telegram (berlaku sama untuk Discord)
 func (s *BookedService) sendTelegramNotificationAsync(booked *models.Booked, tenantId string) {
-	// Tambahkan recover agar jika panic tidak membuat app crash di prod
+	logger.Log.Info("Telegram async started", zap.String("bookingId", booked.ID))
+
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Log.Error("Recovered from panic in Telegram notification", zap.Any("error", r))
@@ -232,6 +233,7 @@ func (s *BookedService) sendTelegramNotificationAsync(booked *models.Booked, ten
 	}
 
 	if !utils.IsTelegramEnabled(setting) {
+		logger.Log.Warn("Telegram config incomplete")
 		return
 	}
 

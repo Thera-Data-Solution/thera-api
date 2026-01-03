@@ -12,7 +12,8 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -o server .
 
 FROM alpine:3.19
-RUN apk add --no-cache libwebp
+RUN apk add --no-cache libwebp ca-certificates
+
 WORKDIR /app
 
 COPY --from=builder /app/server .
