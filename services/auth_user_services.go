@@ -101,7 +101,7 @@ func (s *AuthUserService) RegisterUser(
 func (s *AuthUserService) LoginUser(email, password, tenantId string) (*models.Session, error) {
 	logger.Log.Info("LoginUser called", zap.String("email", email), zap.String("tenantId", tenantId))
 
-	user, err := s.UserRepo.FindByEmailAndTenant(email, tenantId)
+	user, err := s.UserRepo.FindByEmailAndTenantForLogin(email, tenantId)
 	if err != nil {
 		logger.Log.Warn("Pengguna tidak ditemukan", zap.String("email", email))
 		return nil, errors.New("pengguna tidak ditemukan")
