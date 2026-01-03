@@ -38,6 +38,12 @@ func (r *UserRepository) FindByID(idToken string) (*models.User, error) {
 	return &user, err
 }
 
+func (r *UserRepository) FindByIDForCheckMe(idToken string) (*models.User, error) {
+	var user models.User
+	err := r.DB.Where("id = ? AND disable = false", idToken).First(&user).Error
+	return &user, err
+}
+
 func (r *UserRepository) FindAllByTenantId(tenantId string) ([]models.User, error) {
 	var users []models.User
 	err := r.DB.Where("tenant_id = ?", tenantId).Find(&users).Error

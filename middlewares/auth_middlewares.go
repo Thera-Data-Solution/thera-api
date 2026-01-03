@@ -60,7 +60,7 @@ func (m *IsAuthMiddleware) Handle() gin.HandlerFunc {
 			userType = "tenant"
 			user = u
 		} else if session.UserId != nil {
-			u, err := m.UserRepo.FindByID(*session.UserId)
+			u, err := m.UserRepo.FindByIDForCheckMe(*session.UserId)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "pengguna tidak ditemukan"})
 				return
