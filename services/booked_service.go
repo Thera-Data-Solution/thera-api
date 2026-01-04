@@ -271,8 +271,8 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *mo
 	}
 
 	scheduleDate := schedule.DateTime.In(loc)
-	dateStr := scheduleDate.Format("01/02/2006")
-	timeStr := scheduleDate.Format("3:04 PM")
+	dateStr := scheduleDate.Format("02 January 2006")
+	timeStr := scheduleDate.Format("15:04")
 
 	isGroupStr := "No"
 	if category.IsGroup {
