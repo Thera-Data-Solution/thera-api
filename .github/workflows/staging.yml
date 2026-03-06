@@ -1,14 +1,17 @@
-name: Deploy to Koyeb via GHCR
+name: Production Deploy
 
 on:
   push:
-    branches:
-      - "release/staging/**"
+    branches: [staging]
+
+env:
+  IMAGE_NAME: thera-api
+  REGISTRY: ghcr.io
+  GHCR_IMAGE: ghcr.io/thera-data-solution/thera-api:beta
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-    environment: staging
 
     permissions:
       contents: read
@@ -17,32 +20,33 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          go-version: 1.24.9
-
-      - name: Build binary
-        run: |
-          go build -o server .
-
-      - name: Build and push Docker image to GHCR
-        env:
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          IMAGE_NAME=ghcr.io/thera-data-solution/thera-api:latest
-          echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USERNAME --password-stdin
-          docker build -t $IMAGE_NAME .
-          docker push $IMAGE_NAME
-
-      - name: Deploy to Koyeb
-        env:
-          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
-        run: |
-          IMAGE_NAME=ghcr.io/thera-data-solution/thera-api:latest
-          curl -X POST https://app.koyeb.com/v1/services/04d1dace-9cf1-4d72-bf66-176e3c771b9a/redeploy \
-            -H "Authorization: Bearer $KOYEB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"deployment_group":"","sha":"","use_cache":false,"skip_build": false}'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and Push Docker image to GHCR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.GHCR_IMAGE }}
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.THERA_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd t-api
+            
+            docker compose pull
+            docker compose up -d
+            
+            docker image prune -f
