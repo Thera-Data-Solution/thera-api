@@ -104,11 +104,22 @@ func (h *BookedHandler) GetByUserId(c *gin.Context) {
 	}
 
 	booked, err := h.Service.GetByUser(tenantId, userIdentifier)
+	bookResponse := make([]dto.BookingGetResponse, len(booked))
+	for i, b := range booked {
+		bookResponse[i] = dto.BookingGetResponse{
+			ID:        b.ID,
+			Name:      b.Schedule.Categories.Name,
+			Date:      b.Schedule.DateTime,
+			Status:    b.Schedule.Status,
+			Review:    b.Testimoni,
+			Anonymous: *b.Anonymous,
+		}
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, booked)
+	c.JSON(http.StatusOK, bookResponse)
 }
 
 func (h *BookedHandler) GetById(c *gin.Context) {
