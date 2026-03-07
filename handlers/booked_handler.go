@@ -7,6 +7,7 @@ import (
 	"thera-api/dto"
 	"thera-api/models"
 	"thera-api/services"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/datatypes"
@@ -104,16 +105,34 @@ func (h *BookedHandler) GetByUserId(c *gin.Context) {
 	}
 
 	booked, err := h.Service.GetByUser(tenantId, userIdentifier)
-	bookResponse := make([]dto.BookingGetResponse, len(booked))
-	for i, b := range booked {
-		bookResponse[i] = dto.BookingGetResponse{
-			ID:        b.ID,
-			Name:      b.Schedule.Categories.Name,
-			Date:      b.Schedule.DateTime,
-			Status:    b.Schedule.Status,
-			Review:    b.Testimoni,
-			Anonymous: *b.Anonymous,
+	bookResponse := make([]dto.BookingGetResponse, 0)
+	for _, b := range booked {
+		categoryName := ""
+		if b.Schedule.ID != "" && b.Schedule.Categories.ID != "" {
+			categoryName = b.Schedule.Categories.Name
 		}
+
+		var dateTime time.Time
+		status := ""
+		if b.Schedule.ID != "" {
+			dateTime = b.Schedule.DateTime
+			status = b.Schedule.Status
+		}
+
+		// Cek nil pointer sebelum dereference field Anonymous
+		isAnonymous := false
+		if b.Anonymous != nil {
+			isAnonymous = *b.Anonymous
+		}
+
+		bookResponse = append(bookResponse, dto.BookingGetResponse{
+			ID:        b.ID,
+			Name:      categoryName,
+			Date:      dateTime,
+			Status:    status,
+			Review:    b.Testimoni,
+			Anonymous: isAnonymous,
+		})
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
