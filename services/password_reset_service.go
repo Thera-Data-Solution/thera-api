@@ -302,7 +302,7 @@ func (s *PasswordResetService) ResetPasswordAdmin(token, newPassword string) err
 func (s *PasswordResetService) getFrontendURL(tenantId string) string {
 	// You can customize this based on your frontend URL configuration
 	// For now, return a placeholder that should be configured per tenant
-	return "https://your-frontend-url.com"
+	return "https://app.theravickya.com"
 }
 
 func (s *PasswordResetService) generateResetEmailHTML(fullName, resetURL, appName string) string {
