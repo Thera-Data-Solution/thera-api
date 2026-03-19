@@ -9,10 +9,10 @@ import (
 )
 
 type AuthAdminHandler struct {
-	Service            *services.AuthAdminService
-	TenantService      *services.TenantService
+	Service              *services.AuthAdminService
+	TenantService        *services.TenantService
 	PasswordResetService *services.PasswordResetService
-	ProfileService     *services.ProfileService
+	ProfileService       *services.ProfileService
 }
 
 func (h *AuthAdminHandler) Register(c *gin.Context) {
@@ -86,7 +86,6 @@ func (h *AuthAdminHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Get IP address from request
 	ipAddress := c.ClientIP()
 	if ipAddress == "" {
 		ipAddress = c.GetHeader("X-Forwarded-For")
@@ -101,7 +100,6 @@ func (h *AuthAdminHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Always return success to prevent email enumeration
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Jika email terdaftar, instruksi reset password telah dikirim ke email Anda",
 	})

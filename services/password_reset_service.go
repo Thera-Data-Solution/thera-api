@@ -15,10 +15,10 @@ import (
 )
 
 type PasswordResetService struct {
-	ResetRepo    *repositories.PasswordResetRepository
-	UserRepo     *repositories.UserRepository
-	AdminRepo    *repositories.TenantUserRepository
-	SettingRepo  repositories.SettingRepo
+	ResetRepo   *repositories.PasswordResetRepository
+	UserRepo    *repositories.UserRepository
+	AdminRepo   *repositories.TenantUserRepository
+	SettingRepo repositories.SettingRepo
 }
 
 func NewPasswordResetService(
@@ -110,7 +110,7 @@ func (s *PasswordResetService) ForgotPasswordUser(email, tenantId, ipAddress str
 
 	// Send email
 	resendClient := utils.NewResendClient(*setting.MailSecret)
-	
+
 	// Get app name from setting for email
 	appName := "Thera"
 	if setting.AppName != "" {
@@ -118,7 +118,7 @@ func (s *PasswordResetService) ForgotPasswordUser(email, tenantId, ipAddress str
 	}
 
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.getFrontendURL(tenantId), token)
-	
+
 	emailSubject := fmt.Sprintf("Reset Password - %s", appName)
 	emailHTML := s.generateResetEmailHTML(user.FullName, resetURL, appName)
 
@@ -149,9 +149,7 @@ func (s *PasswordResetService) ForgotPasswordAdmin(email, tenantId, ipAddress st
 	// Check if admin exists
 	admin, err := s.AdminRepo.FindByEmailAndTenant(email, tenantId)
 	if err != nil {
-		// Don't reveal if admin exists or not (security best practice)
 		logger.Log.Warn("Admin tidak ditemukan untuk forgot password", zap.String("email", email))
-		// Return success to prevent email enumeration
 		return nil
 	}
 
@@ -181,7 +179,7 @@ func (s *PasswordResetService) ForgotPasswordAdmin(email, tenantId, ipAddress st
 
 	// Send email
 	resendClient := utils.NewResendClient(*setting.MailSecret)
-	
+
 	// Get app name from setting for email
 	appName := "Thera"
 	if setting.AppName != "" {
@@ -189,7 +187,7 @@ func (s *PasswordResetService) ForgotPasswordAdmin(email, tenantId, ipAddress st
 	}
 
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.getFrontendURL(tenantId), token)
-	
+
 	emailSubject := fmt.Sprintf("Reset Password - %s", appName)
 	emailHTML := s.generateResetEmailHTML(admin.FullName, resetURL, appName)
 
@@ -336,6 +334,3 @@ func (s *PasswordResetService) generateResetEmailHTML(fullName, resetURL, appNam
 </html>
 `, fullName, appName, resetURL, resetURL)
 }
-
-
-
