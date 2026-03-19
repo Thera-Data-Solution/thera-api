@@ -118,8 +118,6 @@ func (h *BookedHandler) GetByUserId(c *gin.Context) {
 			dateTime = b.Schedule.DateTime
 			status = b.Schedule.Status
 		}
-
-		// Cek nil pointer sebelum dereference field Anonymous
 		isAnonymous := false
 		if b.Anonymous != nil {
 			isAnonymous = *b.Anonymous
