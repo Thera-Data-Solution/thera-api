@@ -195,7 +195,14 @@ func (h *BookedHandler) Cancel(c *gin.Context) {
 func (h *BookedHandler) AddTestimoni(c *gin.Context) {
 	authData, _ := c.Get("auth")
 	auth := authData.(gin.H)
+
 	tenantId := auth["tenantId"].(string)
+	userType := auth["userType"].(string)
+	var userId *string
+	if auth["userId"] != nil {
+		userId = auth["userId"].(*string)
+	}
+
 	id := c.Param("id")
 
 	var input struct {
@@ -214,7 +221,7 @@ func (h *BookedHandler) AddTestimoni(c *gin.Context) {
 		input.ShowTesti = &defaultShow
 	}
 
-	result, err := h.Service.AddTestimoni(id, &input.Testimoni, input.Anonymous, input.ShowTesti, tenantId)
+	result, err := h.Service.AddTestimoni(id, &input.Testimoni, input.Anonymous, input.ShowTesti, tenantId, userId, userType)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return

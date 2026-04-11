@@ -106,12 +106,18 @@ func (s *BookedService) Update(booked *models.Booked) error {
 	return nil
 }
 
-func (s *BookedService) AddTestimoni(id string, testimoni *string, anonymous *bool, showTesti *bool, tenantId string) (*models.Booked, error) {
+func (s *BookedService) AddTestimoni(id string, testimoni *string, anonymous *bool, showTesti *bool, tenantId string, userId *string, userType string) (*models.Booked, error) {
 	logger.Log.Info("Add testimoni called", zap.String("id", id), zap.String("tenantId", tenantId))
 
 	booked, err := s.BookingRepo.GetById(id, tenantId)
 	if err != nil {
 		return nil, err
+	}
+
+	if userType == "user" {
+		if userId == nil || booked.UserId == "" || booked.UserId != *userId {
+			return nil, errors.New("tidak memiliki akses")
+		}
 	}
 
 	if booked.Schedule.Status != "CLOSED" {
@@ -121,7 +127,11 @@ func (s *BookedService) AddTestimoni(id string, testimoni *string, anonymous *bo
 	}
 	var testimonis = ""
 	if testimoni == nil || *testimoni == "" {
-		testimonis = *booked.Testimoni
+		if booked.Testimoni != nil {
+			testimonis = *booked.Testimoni
+		} else {
+			testimonis = ""
+		}
 	} else {
 		testimonis = *testimoni
 	}
