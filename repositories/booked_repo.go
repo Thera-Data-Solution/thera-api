@@ -111,3 +111,18 @@ func (r *BookedRepository) GetAllWithTestimoni(tenantId string) ([]models.Booked
 
 	return booked, err
 }
+
+func (r *BookedRepository) GetAllWithTestimoniActual(tenantId string) ([]models.Booked, error) {
+	var booked []models.Booked
+
+	err := r.DB.
+		Preload("Schedule").
+		Preload("Schedule.Categories").
+		Preload("User").
+		Where("tenant_id = ?", tenantId).
+		Where("testimoni IS NOT NULL AND testimoni <> ''").
+		Find(&booked).
+		Error
+
+	return booked, err
+}

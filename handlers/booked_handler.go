@@ -257,3 +257,31 @@ func (h *BookedHandler) GetAllTestimoni(c *gin.Context) {
 		"data":   responses,
 	})
 }
+
+func (h *BookedHandler) GetAllTestimoniAdmin(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	results, err := h.Service.AdminGetAllTestimoni(tenantId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data testimoni"})
+		return
+	}
+
+	responses := make([]dto.TestimoniAdminResponse, 0)
+
+	for _, r := range results {
+		responses = append(responses, dto.TestimoniAdminResponse{
+			ID:        r.ID,
+			Testimoni: *r.Testimoni,
+			User:      r.User.FullName,
+			Image:     *r.User.Avatar,
+			Event:     r.Schedule.Categories.Name,
+			Anonymous: r.Anonymous != nil && *r.Anonymous,
+			ShowTesti: r.ShowTesti != nil && *r.ShowTesti,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   responses,
+	})
+}
