@@ -209,6 +209,11 @@ func (h *BookedHandler) AddTestimoni(c *gin.Context) {
 		return
 	}
 
+	if input.ShowTesti == nil {
+		defaultShow := false
+		input.ShowTesti = &defaultShow
+	}
+
 	result, err := h.Service.AddTestimoni(id, &input.Testimoni, input.Anonymous, input.ShowTesti, tenantId)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
