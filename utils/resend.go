@@ -30,16 +30,16 @@ func NewResendClient(apiKey string) *ResendClient {
 	return &ResendClient{APIKey: apiKey}
 }
 
-func (c *ResendClient) SendEmail(from, to, subject, html string) error {
+func (c *ResendClient) SendEmail(to, subject, html string) error {
 	if c.APIKey == "" {
 		return fmt.Errorf("Resend API key tidak ditemukan")
 	}
 
 	reqBody := ResendEmailRequest{
-		From:    from,
-		To:       []string{to},
-		Subject:  subject,
-		Html:     html,
+		From:    "Theravickya Support <noreply@theravickya.com>",
+		To:      []string{to},
+		Subject: subject,
+		Html:    html,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -72,7 +72,7 @@ func (c *ResendClient) SendEmail(from, to, subject, html string) error {
 	}
 
 	if resp.StatusCode >= 300 {
-		logger.Log.Error("Resend API error", 
+		logger.Log.Error("Resend API error",
 			zap.Int("statusCode", resp.StatusCode),
 			zap.String("response", string(body)))
 		return fmt.Errorf("Resend API error: %s (status: %d)", string(body), resp.StatusCode)
@@ -84,12 +84,9 @@ func (c *ResendClient) SendEmail(from, to, subject, html string) error {
 		// Tidak fatal, email mungkin sudah terkirim
 	}
 
-	logger.Log.Info("Email berhasil dikirim", 
+	logger.Log.Info("Email berhasil dikirim",
 		zap.String("to", to),
 		zap.String("emailId", resendResp.Id))
-	
+
 	return nil
 }
-
-
-

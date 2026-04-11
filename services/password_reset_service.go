@@ -70,28 +70,22 @@ func (s *PasswordResetService) CheckRateLimit(ipAddress string) error {
 func (s *PasswordResetService) ForgotPasswordUser(email, tenantId, ipAddress string) error {
 	logger.Log.Info("ForgotPasswordUser called", zap.String("email", email), zap.String("tenantId", tenantId))
 
-	// Check rate limit
 	if err := s.CheckRateLimit(ipAddress); err != nil {
 		return err
 	}
 
-	// Check if user exists
 	user, err := s.UserRepo.FindByEmailAndTenant(email, tenantId)
 	if err != nil {
-		// Don't reveal if user exists or not (security best practice)
 		logger.Log.Warn("User tidak ditemukan untuk forgot password", zap.String("email", email))
-		// Return success to prevent email enumeration
 		return nil
 	}
 
-	// Get setting for email configuration
 	setting, err := s.SettingRepo.FindByTenantId(tenantId)
 	if err != nil || setting.MailSecret == nil || *setting.MailSecret == "" {
 		logger.Log.Error("Setting email tidak ditemukan", zap.String("tenantId", tenantId))
 		return errors.New("konfigurasi email tidak ditemukan")
 	}
 
-	// Generate reset token
 	token := uuid.New().String()
 	resetToken := &models.PasswordResetToken{
 		Token:     token,
@@ -99,7 +93,7 @@ func (s *PasswordResetService) ForgotPasswordUser(email, tenantId, ipAddress str
 		IPAddress: ipAddress,
 		UserType:  "user",
 		TenantId:  tenantId,
-		ExpiresAt: time.Now().Add(1 * time.Hour), // Token expires in 1 hour
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 		Used:      false,
 	}
 
@@ -108,27 +102,25 @@ func (s *PasswordResetService) ForgotPasswordUser(email, tenantId, ipAddress str
 		return errors.New("gagal membuat token reset password")
 	}
 
-	// Send email
 	resendClient := utils.NewResendClient(*setting.MailSecret)
 
-	// Get app name from setting for email
 	appName := "Thera"
 	if setting.AppName != "" {
 		appName = setting.AppName
 	}
 
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.getFrontendURL(tenantId), token)
+	resetURL := fmt.Sprintf("%s/auth/reset-password?token=%s", s.getFrontendURL("user", tenantId), token)
 
 	emailSubject := fmt.Sprintf("Reset Password - %s", appName)
 	emailHTML := s.generateResetEmailHTML(user.FullName, resetURL, appName)
 
-	// Use MailKey as from email, or default
-	fromEmail := "noreply@resend.dev"
-	if setting.MailKey != nil && *setting.MailKey != "" {
-		fromEmail = *setting.MailKey
-	}
+	//  Use MailKey as from email, or default
+	// fromEmail := "noreply@resend.dev"
+	// if setting.MailKey != nil && *setting.MailKey != "" {
+	// 	fromEmail = *setting.MailKey
+	// }
 
-	if err := resendClient.SendEmail(fromEmail, email, emailSubject, emailHTML); err != nil {
+	if err := resendClient.SendEmail(email, emailSubject, emailHTML); err != nil {
 		logger.Log.Error("Gagal mengirim email reset password", zap.String("email", email), zap.Error(err))
 		return errors.New("gagal mengirim email reset password")
 	}
@@ -137,30 +129,25 @@ func (s *PasswordResetService) ForgotPasswordUser(email, tenantId, ipAddress str
 	return nil
 }
 
-// ForgotPasswordAdmin handles forgot password for admin users
 func (s *PasswordResetService) ForgotPasswordAdmin(email, tenantId, ipAddress string) error {
 	logger.Log.Info("ForgotPasswordAdmin called", zap.String("email", email), zap.String("tenantId", tenantId))
 
-	// Check rate limit
 	if err := s.CheckRateLimit(ipAddress); err != nil {
 		return err
 	}
 
-	// Check if admin exists
 	admin, err := s.AdminRepo.FindByEmailAndTenant(email, tenantId)
 	if err != nil {
 		logger.Log.Warn("Admin tidak ditemukan untuk forgot password", zap.String("email", email))
 		return nil
 	}
 
-	// Get setting for email configuration
 	setting, err := s.SettingRepo.FindByTenantId(tenantId)
 	if err != nil || setting.MailSecret == nil || *setting.MailSecret == "" {
 		logger.Log.Error("Setting email tidak ditemukan", zap.String("tenantId", tenantId))
 		return errors.New("konfigurasi email tidak ditemukan")
 	}
 
-	// Generate reset token
 	token := uuid.New().String()
 	resetToken := &models.PasswordResetToken{
 		Token:     token,
@@ -168,7 +155,7 @@ func (s *PasswordResetService) ForgotPasswordAdmin(email, tenantId, ipAddress st
 		IPAddress: ipAddress,
 		UserType:  "admin",
 		TenantId:  tenantId,
-		ExpiresAt: time.Now().Add(1 * time.Hour), // Token expires in 1 hour
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 		Used:      false,
 	}
 
@@ -177,27 +164,24 @@ func (s *PasswordResetService) ForgotPasswordAdmin(email, tenantId, ipAddress st
 		return errors.New("gagal membuat token reset password")
 	}
 
-	// Send email
 	resendClient := utils.NewResendClient(*setting.MailSecret)
 
-	// Get app name from setting for email
 	appName := "Thera"
 	if setting.AppName != "" {
 		appName = setting.AppName
 	}
 
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.getFrontendURL(tenantId), token)
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.getFrontendURL("admin", tenantId), token)
 
 	emailSubject := fmt.Sprintf("Reset Password - %s", appName)
 	emailHTML := s.generateResetEmailHTML(admin.FullName, resetURL, appName)
 
-	// Use MailKey as from email, or default
-	fromEmail := "noreply@resend.dev"
-	if setting.MailKey != nil && *setting.MailKey != "" {
-		fromEmail = *setting.MailKey
-	}
+	//	TODO: IF Needed, use different from email for admin password reset emails
+	//  if setting.MailKey != nil && *setting.MailKey != "" {
+	// 	fromEmail = *setting.MailKey
+	// }
 
-	if err := resendClient.SendEmail(fromEmail, email, emailSubject, emailHTML); err != nil {
+	if err := resendClient.SendEmail(email, emailSubject, emailHTML); err != nil {
 		logger.Log.Error("Gagal mengirim email reset password", zap.String("email", email), zap.Error(err))
 		return errors.New("gagal mengirim email reset password")
 	}
@@ -298,11 +282,13 @@ func (s *PasswordResetService) ResetPasswordAdmin(token, newPassword string) err
 	return nil
 }
 
-// Helper functions
-func (s *PasswordResetService) getFrontendURL(tenantId string) string {
-	// You can customize this based on your frontend URL configuration
-	// For now, return a placeholder that should be configured per tenant
-	return "https://app.theravickya.com"
+func (s *PasswordResetService) getFrontendURL(userType string, tenantId string) string {
+	switch userType {
+	case "admin":
+		return "https://app.theravickya.com"
+	default:
+		return "https://theravickya.com"
+	}
 }
 
 func (s *PasswordResetService) generateResetEmailHTML(fullName, resetURL, appName string) string {
