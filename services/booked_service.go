@@ -171,6 +171,12 @@ func (s *BookedService) GetAllTestimoni(tenantId string) ([]models.Booked, error
 	return s.BookingRepo.GetAllWithTestimoni(tenantId)
 }
 
+func (s *BookedService) AdminGetAllTestimoni(tenantId string) ([]models.Booked, error) {
+	logger.Log.Info("Get all testimoni called", zap.String("tenantId", tenantId))
+
+	return s.BookingRepo.GetAllWithTestimoniActual(tenantId)
+}
+
 // sendDiscordNotification sends a Discord notification about new booking
 func (s *BookedService) sendDiscordNotification(userId, scheduleId, tenantId string) {
 	// Get setting to check if Discord is enabled

@@ -209,6 +209,11 @@ func (h *BookedHandler) AddTestimoni(c *gin.Context) {
 		return
 	}
 
+	if input.ShowTesti == nil {
+		defaultShow := false
+		input.ShowTesti = &defaultShow
+	}
+
 	result, err := h.Service.AddTestimoni(id, &input.Testimoni, input.Anonymous, input.ShowTesti, tenantId)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
@@ -244,6 +249,34 @@ func (h *BookedHandler) GetAllTestimoni(c *gin.Context) {
 			Testimoni: *r.Testimoni,
 			User:      user,
 			Event:     r.Schedule.Categories.Name,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   responses,
+	})
+}
+
+func (h *BookedHandler) GetAllTestimoniAdmin(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	results, err := h.Service.AdminGetAllTestimoni(tenantId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data testimoni"})
+		return
+	}
+
+	responses := make([]dto.TestimoniAdminResponse, 0)
+
+	for _, r := range results {
+		responses = append(responses, dto.TestimoniAdminResponse{
+			ID:        r.ID,
+			Testimoni: *r.Testimoni,
+			User:      r.User.FullName,
+			Image:     *r.User.Avatar,
+			Event:     r.Schedule.Categories.Name,
+			Anonymous: r.Anonymous != nil && *r.Anonymous,
+			ShowTesti: r.ShowTesti != nil && *r.ShowTesti,
 		})
 	}
 
