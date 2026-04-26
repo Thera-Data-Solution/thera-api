@@ -5,6 +5,7 @@ import "gorm.io/datatypes"
 type Categories struct {
 	ID             string         `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Name           string         `json:"name" gorm:"not null"`
+	NameEn         string         `json:"nameEn,omitempty"`
 	Description    *string        `json:"description,omitempty"`
 	DescriptionEn  *string        `json:"descriptionEn,omitempty"`
 	Slug           string         `json:"slug" gorm:"uniqueIndex;not null"`
@@ -20,6 +21,8 @@ type Categories struct {
 	Disable        bool           `json:"disable" gorm:"default:false"`
 	TenantId       *string        `json:"tenantId,omitempty" gorm:"index"`
 	CustomFields   datatypes.JSON `json:"customFields,omitempty" gorm:"type:jsonb"`
+	CatType        int            `json:"catType" gorm:"default:0"`
+	ShowBanner     bool           `json:"banner" gorm:"default:false"`
 
 	Schedules []Schedules `json:"schedules,omitempty" gorm:"foreignKey:CategoryId"`
 }

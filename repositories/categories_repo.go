@@ -24,6 +24,16 @@ func (r *CategoriesRepository) FindAll(tenant string) ([]models.Categories, erro
 	return categories, err
 }
 
+func (r *CategoriesRepository) FindAllByType(tenant string, id string) ([]models.Categories, error) {
+	var categories []models.Categories
+	err := r.DB.
+		Where(`tenant_id = ? AND cat_type = ? AND disable=false`, tenant, id).
+		Order("name ASC").
+		Find(&categories).
+		Error
+	return categories, err
+}
+
 func (r *CategoriesRepository) FindByID(id string, tenant string) (*models.Categories, error) {
 	var category models.Categories
 	err := r.DB.First(&category, `id = ? AND tenant_id = ?`, id, tenant).Error

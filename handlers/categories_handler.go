@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"thera-api/dto"
 	"thera-api/models"
 	"thera-api/services"
 	"thera-api/utils"
@@ -82,16 +83,116 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 
 func (h *CategoriesHandler) GetAll(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
+
 	if tenantId == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
 		return
 	}
-	categories, err := h.Service.GetAllCategories(tenantId)
+
+	data, err := h.Service.GetAllCategories(tenantId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, categories)
+
+	var response []dto.CategoriesResponse
+	for _, cat := range data {
+		res := dto.CategoriesResponse{
+			ID:             cat.ID,
+			Name:           cat.Name,
+			Slug:           cat.Slug,
+			Start:          cat.Start,
+			End:            cat.End,
+			IsGroup:        cat.IsGroup,
+			IsFree:         cat.IsFree,
+			IsPayAsYouWish: cat.IsPayAsYouWish,
+			IsManual:       cat.IsManual,
+		}
+		if cat.NameEn == "" {
+			res.NameEn = cat.Name
+		}
+		if cat.Description != nil {
+			res.Description = *cat.Description
+		}
+		if cat.DescriptionEn != nil {
+			res.DescriptionEn = *cat.DescriptionEn
+		}
+		if cat.Location != nil {
+			res.Location = *cat.Location
+		}
+		if cat.Image != nil {
+			res.Image = *cat.Image
+		}
+		if cat.Price != nil {
+			res.Price = int(*cat.Price)
+		}
+
+		response = append(response, res)
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *CategoriesHandler) GetAll2(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	id := c.Param("id")
+
+	if tenantId == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
+		return
+	}
+
+	data, err := h.Service.GetAllCategoriesWithType(tenantId, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Inisialisasi dengan make agar jika data kosong, JSON yang keluar tetap [] bukan null
+	response := make([]dto.CategoriesResponse, 0)
+
+	for _, cat := range data {
+		res := dto.CategoriesResponse{
+			ID:             cat.ID,
+			Name:           cat.Name,
+			Slug:           cat.Slug,
+			Start:          cat.Start,
+			End:            cat.End,
+			IsGroup:        cat.IsGroup,
+			IsFree:         cat.IsFree,
+			IsPayAsYouWish: cat.IsPayAsYouWish,
+			IsManual:       cat.IsManual,
+		}
+
+		if cat.NameEn == "" {
+			res.NameEn = cat.Name
+		} else {
+			res.NameEn = cat.NameEn
+		}
+
+		if cat.Description != nil {
+			res.Description = *cat.Description
+		}
+		if cat.DescriptionEn != nil {
+			res.DescriptionEn = *cat.DescriptionEn
+		}
+		if cat.Location != nil {
+			res.Location = *cat.Location
+		}
+		if cat.Image != nil {
+			res.Image = *cat.Image
+		}
+		if cat.Price != nil {
+			res.Price = int(*cat.Price)
+		}
+
+		response = append(response, res)
+	}
+
+	// Mengembalikan response (otomatis [] jika len 0 karena sudah di-make)
+	c.JSON(http.StatusOK, gin.H{
+		"data": response,
+	})
 }
 
 func (h *CategoriesHandler) GetByID(c *gin.Context) {

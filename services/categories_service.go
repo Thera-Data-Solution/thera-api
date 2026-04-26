@@ -21,6 +21,10 @@ func (s *CategoriesService) GetAllCategories(tenant string) ([]models.Categories
 	return s.CategoriesRepo.FindAll(tenant)
 }
 
+func (s *CategoriesService) GetAllCategoriesWithType(tenant string, id string) ([]models.Categories, error) {
+	return s.CategoriesRepo.FindAllByType(tenant, id)
+}
+
 func (s *CategoriesService) GetCategoryByID(id string, tenant string) (*models.Categories, error) {
 	return s.CategoriesRepo.FindByID(id, tenant)
 }
