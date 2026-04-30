@@ -12,6 +12,7 @@ func RegisterSettingRoutes(r *gin.RouterGroup, c *initpkg.Container) {
 	group := r.Group("/settings")
 
 	group.GET("", c.SettingHandler.GetAll)
+	group.GET("admin", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.SettingHandler.GetAllAdmin)
 	// group.GET("/:id", c.SettingHandler.GetById)
 	// group.GET("/tenant/:tenantId", c.SettingHandler.GetByTenantId)
 	group.POST("", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.SettingHandler.Upsert)

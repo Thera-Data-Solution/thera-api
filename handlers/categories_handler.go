@@ -40,6 +40,8 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	isManual := c.PostForm("isManual") == "true"
 	disable := c.PostForm("disable") == "true"
 	customFieldsRaw := c.PostForm("customFields")
+	catType := utils.ParseInt(c.PostForm("catType"))
+	showBanner := c.PostForm("showBanner") == "false"
 
 	tenantId := auth["tenantId"].(string)
 
@@ -73,6 +75,7 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	category, err := h.Service.CreateCategory(
 		name, &description, &descriptionEn, slug, imageURL, start, end, &location, &price,
 		isGroup, isFree, isPayAsYouWish, isManual, disable, &tenantId, customFields,
+		catType, showBanner,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -133,7 +136,7 @@ func (h *CategoriesHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *CategoriesHandler) GetAll2(c *gin.Context) {
+func (h *CategoriesHandler) GetCategoriesWithType(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
 	id := c.Param("id")
 
@@ -195,6 +198,69 @@ func (h *CategoriesHandler) GetAll2(c *gin.Context) {
 	})
 }
 
+func (h *CategoriesHandler) GetAllAsAdmin(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	id := c.Param("id")
+
+	if tenantId == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
+		return
+	}
+
+	data, err := h.Service.GetAllCategoriesAsAdmin(tenantId, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Inisialisasi dengan make agar jika data kosong, JSON yang keluar tetap [] bukan null
+	response := make([]dto.AdminCategoriesResponse, 0)
+
+	for _, cat := range data {
+		res := dto.AdminCategoriesResponse{
+			ID:             cat.ID,
+			Name:           cat.Name,
+			Slug:           cat.Slug,
+			Start:          cat.Start,
+			End:            cat.End,
+			IsGroup:        cat.IsGroup,
+			IsFree:         cat.IsFree,
+			IsPayAsYouWish: cat.IsPayAsYouWish,
+			IsManual:       cat.IsManual,
+			Disable:        cat.Disable,
+		}
+
+		if cat.NameEn == "" {
+			res.NameEn = cat.Name
+		} else {
+			res.NameEn = cat.NameEn
+		}
+
+		if cat.Description != nil {
+			res.Description = *cat.Description
+		}
+		if cat.DescriptionEn != nil {
+			res.DescriptionEn = *cat.DescriptionEn
+		}
+		if cat.Location != nil {
+			res.Location = *cat.Location
+		}
+		if cat.Image != nil {
+			res.Image = *cat.Image
+		}
+		if cat.Price != nil {
+			res.Price = int(*cat.Price)
+		}
+
+		response = append(response, res)
+	}
+
+	// Mengembalikan response (otomatis [] jika len 0 karena sudah di-make)
+	c.JSON(http.StatusOK, gin.H{
+		"data": response,
+	})
+}
+
 func (h *CategoriesHandler) GetByID(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
 	id := c.Param("id")
@@ -216,6 +282,7 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	auth := authData.(gin.H)
 	id := c.Param("id")
 	nameRaw := strings.TrimSpace(c.PostForm("name"))
+	nameEn := strings.TrimSpace(c.PostForm("nameEn"))
 	description := c.PostForm("description")
 	descriptionEn := c.PostForm("descriptionEn")
 	slugInput := strings.TrimSpace(c.PostForm("slug"))
@@ -270,12 +337,17 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	}
 
 	var namePtr *string
+	var nameEnPtr *string
 	if nameRaw != "" {
 		namePtr = &nameRaw
 	}
 
+	if nameEn != "" {
+		nameEnPtr = &nameEn
+	}
+
 	category, err := h.Service.UpdateCategory(
-		id, namePtr, &description, &descriptionEn, slugPtr, imageURL, &start, &end,
+		id, namePtr, nameEnPtr, &description, &descriptionEn, slugPtr, imageURL, &start, &end,
 		&location, &price, &isGroup, &isFree, &isPayAsYouWish, &isManual, &disable, tenantId, customFields,
 	)
 	if err != nil {

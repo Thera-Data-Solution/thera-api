@@ -45,6 +45,30 @@ func (h *SettingHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *SettingHandler) GetAllAdmin(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	_, exists := c.Get("auth")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "auth tidak ditemukan"})
+		return
+	}
+	if tenantId == "" {
+		logger.Log.Warn("GetAll Settings: tenantId header is missing")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tenantId tidak ditemukan di header"})
+		return
+	}
+
+	settings, err := h.service.FindByTenantId(tenantId)
+
+	if err != nil {
+		logger.Log.Error("failed to get settings", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, settings)
+}
+
 func (h *SettingHandler) GetById(c *gin.Context) {
 	id := c.Param("id")
 
