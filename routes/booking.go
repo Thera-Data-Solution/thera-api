@@ -9,13 +9,15 @@ import (
 func RegisterBookingRoutes(router *gin.RouterGroup, c *initpkg.Container) {
 	book := router.Group("/booking")
 	{
-		book.GET("", c.Middlewares.Handle(), c.BookHandler.GetByUserId)
 		book.POST("", c.Middlewares.Handle(), c.BookHandler.Create)
-		book.GET("/all", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.GetAll)
-		book.GET("/one/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.GetById)
-		book.GET("/testimoni", c.BookHandler.GetAllTestimoni)
-		book.GET("/testimoni/admin", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.GetAllTestimoniAdmin)
-		book.POST("/testimoni/:id", c.Middlewares.Handle(), c.BookHandler.AddTestimoni)
-		book.DELETE("/one/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.Cancel)
+		book.POST("/cancel", c.Middlewares.Handle(), c.BookHandler.Cancel)
+	}
+
+	adminBook := router.Group("/abook")
+	{
+		adminBook.GET("/", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.GetAllAdmin)
+		adminBook.GET("/change-status", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.ChangeStatus)
+		adminBook.GET("/close-schedule", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.BookHandler.CloseSchedule)
+
 	}
 }

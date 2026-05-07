@@ -4,10 +4,12 @@ import "time"
 
 type Review struct {
 	ID          string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserId      string    `json:"userId" gorm:"not null;index"`
-	BookedId    string    `json:"bookedId" gorm:"not null;index"`
+	BookingId   string    `json:"bookingId" gorm:"uniqueIndex;not null"`
+	UserId      string    `json:"userId" gorm:"not null"`
+	TargetId    string    `json:"targetId" gorm:"index"`
+	TargetType  string    `json:"targetType" gorm:"index"`
+	Content     string    `json:"content"`
+	IsApproved  bool      `json:"isApproved" gorm:"default:false"`
 	IsAnonymous bool      `json:"isAnonymous" gorm:"default:false"`
-	Comment     *string   `json:"comment,omitempty"`
-	CreatedAt   time.Time `json:"createdAt" gorm:"autoCreateTime"`
-	TenantId    *string   `json:"tenantId,omitempty" gorm:"index"`
+	CreatedAt   time.Time `json:"createdAt"`
 }

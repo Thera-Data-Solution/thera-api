@@ -21,4 +21,6 @@ func SetupRoutes(r *gin.Engine, c *initpkg.Container) {
 	RegisterSettingRoutes(api, c)
 	RegisterPartnerRoutes(api, c)
 	RegisterUserRoutes(api, c)
+	RegisterEventsRoutes(api, c)
+	RegisterReviewRoutes(api, c)
 }

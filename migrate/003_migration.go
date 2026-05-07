@@ -13,7 +13,7 @@ func Migration003() {
 	db := config.DB
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		{
-			ID: "003.5_adding_name",
+			ID: "003_adding_name",
 			Migrate: func(tx *gorm.DB) error {
 				return tx.AutoMigrate(
 					&models.Categories{},

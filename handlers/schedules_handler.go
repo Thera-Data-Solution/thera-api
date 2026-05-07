@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"thera-api/dto"
 	"thera-api/services"
 	"time"
 
@@ -13,7 +14,6 @@ type SchedulesHandler struct {
 	Service *services.SchedulesService
 }
 
-// POST /schedules
 type ScheduleRequest struct {
 	DateTime   string `json:"dateTime"`
 	CategoryId string `json:"categoryId"`
@@ -47,7 +47,9 @@ func (h *SchedulesHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, schedule)
+	fmt.Printf("Schedule created: %+v\n", schedule)
+
+	c.JSON(http.StatusCreated, gin.H{"message": "jadwal berhasil dibuat"})
 }
 
 // GET /schedules
@@ -58,11 +60,23 @@ func (h *SchedulesHandler) GetAll(c *gin.Context) {
 		return
 	}
 	schedules, err := h.Service.GetAllSchedules(tenantId)
+
+	var response []dto.ScheduleResponse
+	for _, schedule := range schedules {
+		response = append(response, dto.ScheduleResponse{
+			ID:           schedule.ID,
+			DateTime:     schedule.DateTime,
+			CategoryId:   schedule.CategoryId,
+			CategoryName: schedule.Categories.Name,
+			Status:       schedule.Status,
+		})
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, schedules)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *SchedulesHandler) GetByCatID(c *gin.Context) {

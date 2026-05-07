@@ -40,8 +40,6 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	isManual := c.PostForm("isManual") == "true"
 	disable := c.PostForm("disable") == "true"
 	customFieldsRaw := c.PostForm("customFields")
-	catType := utils.ParseInt(c.PostForm("catType"))
-	showBanner := c.PostForm("showBanner") == "false"
 
 	tenantId := auth["tenantId"].(string)
 
@@ -75,7 +73,6 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	category, err := h.Service.CreateCategory(
 		name, &description, &descriptionEn, slug, imageURL, start, end, &location, &price,
 		isGroup, isFree, isPayAsYouWish, isManual, disable, &tenantId, customFields,
-		catType, showBanner,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -103,6 +100,7 @@ func (h *CategoriesHandler) GetAll(c *gin.Context) {
 		res := dto.CategoriesResponse{
 			ID:             cat.ID,
 			Name:           cat.Name,
+			NameEn:         cat.NameEn,
 			Slug:           cat.Slug,
 			Start:          cat.Start,
 			End:            cat.End,
@@ -136,68 +134,6 @@ func (h *CategoriesHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *CategoriesHandler) GetCategoriesWithType(c *gin.Context) {
-	tenantId := c.GetHeader("x-tenant-id")
-	id := c.Param("id")
-
-	if tenantId == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
-		return
-	}
-
-	data, err := h.Service.GetAllCategoriesWithType(tenantId, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Inisialisasi dengan make agar jika data kosong, JSON yang keluar tetap [] bukan null
-	response := make([]dto.CategoriesResponse, 0)
-
-	for _, cat := range data {
-		res := dto.CategoriesResponse{
-			ID:             cat.ID,
-			Name:           cat.Name,
-			Slug:           cat.Slug,
-			Start:          cat.Start,
-			End:            cat.End,
-			IsGroup:        cat.IsGroup,
-			IsFree:         cat.IsFree,
-			IsPayAsYouWish: cat.IsPayAsYouWish,
-			IsManual:       cat.IsManual,
-		}
-
-		if cat.NameEn == "" {
-			res.NameEn = cat.Name
-		} else {
-			res.NameEn = cat.NameEn
-		}
-
-		if cat.Description != nil {
-			res.Description = *cat.Description
-		}
-		if cat.DescriptionEn != nil {
-			res.DescriptionEn = *cat.DescriptionEn
-		}
-		if cat.Location != nil {
-			res.Location = *cat.Location
-		}
-		if cat.Image != nil {
-			res.Image = *cat.Image
-		}
-		if cat.Price != nil {
-			res.Price = int(*cat.Price)
-		}
-
-		response = append(response, res)
-	}
-
-	// Mengembalikan response (otomatis [] jika len 0 karena sudah di-make)
-	c.JSON(http.StatusOK, gin.H{
-		"data": response,
-	})
-}
-
 func (h *CategoriesHandler) GetAllAsAdmin(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
 	id := c.Param("id")
@@ -220,6 +156,7 @@ func (h *CategoriesHandler) GetAllAsAdmin(c *gin.Context) {
 		res := dto.AdminCategoriesResponse{
 			ID:             cat.ID,
 			Name:           cat.Name,
+			NameEn:         cat.NameEn,
 			Slug:           cat.Slug,
 			Start:          cat.Start,
 			End:            cat.End,
@@ -232,10 +169,7 @@ func (h *CategoriesHandler) GetAllAsAdmin(c *gin.Context) {
 
 		if cat.NameEn == "" {
 			res.NameEn = cat.Name
-		} else {
-			res.NameEn = cat.NameEn
 		}
-
 		if cat.Description != nil {
 			res.Description = *cat.Description
 		}
@@ -272,7 +206,17 @@ func (h *CategoriesHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, category)
 }
 
-// PUT /categories/:id
+func (h *CategoriesHandler) GetByIDAsAdmin(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	id := c.Param("id")
+	category, err := h.Service.GetCategoryByIDAsAdmin(id, tenantId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "kategori tidak ditemukan"})
+		return
+	}
+	c.JSON(http.StatusOK, category)
+}
+
 func (h *CategoriesHandler) Update(c *gin.Context) {
 	authData, exists := c.Get("auth")
 	if !exists {

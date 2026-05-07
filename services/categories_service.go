@@ -21,16 +21,16 @@ func (s *CategoriesService) GetAllCategories(tenant string) ([]models.Categories
 	return s.CategoriesRepo.FindAll(tenant)
 }
 
-func (s *CategoriesService) GetAllCategoriesWithType(tenant string, id string) ([]models.Categories, error) {
-	return s.CategoriesRepo.FindAllByType(tenant, id)
-}
-
 func (s *CategoriesService) GetAllCategoriesAsAdmin(tenant string, id string) ([]models.Categories, error) {
-	return s.CategoriesRepo.FindAllByTypeAdmin(tenant, id)
+	return s.CategoriesRepo.FindAllAsAdmin(tenant)
 }
 
 func (s *CategoriesService) GetCategoryByID(id string, tenant string) (*models.Categories, error) {
 	return s.CategoriesRepo.FindByID(id, tenant)
+}
+
+func (s *CategoriesService) GetCategoryByIDAsAdmin(id string, tenant string) (*models.Categories, error) {
+	return s.CategoriesRepo.FindByIDAndTenant(id, tenant)
 }
 
 func (s *CategoriesService) GetCategoryByIDAndTenant(id string, tenant string) (*models.Categories, error) {
@@ -48,8 +48,6 @@ func (s *CategoriesService) CreateCategory(
 	isGroup, isFree, isPayAsYouWish, isManual, disable bool,
 	tenantId *string,
 	customFields datatypes.JSON,
-	catType int,
-	showBanner bool,
 ) (*models.Categories, error) {
 	if tenantId == nil || strings.TrimSpace(*tenantId) == "" {
 		return nil, errors.New("tenantId tidak boleh kosong")
@@ -77,8 +75,6 @@ func (s *CategoriesService) CreateCategory(
 		Disable:        disable,
 		TenantId:       tenantId,
 		CustomFields:   customFields,
-		CatType:        catType,
-		ShowBanner:     showBanner,
 	}
 	if err := s.CategoriesRepo.Create(category); err != nil {
 		return nil, err

@@ -21,8 +21,6 @@ type Categories struct {
 	Disable        bool           `json:"disable" gorm:"default:false"`
 	TenantId       *string        `json:"tenantId,omitempty" gorm:"index"`
 	CustomFields   datatypes.JSON `json:"customFields,omitempty" gorm:"type:jsonb"`
-	CatType        int            `json:"catType" gorm:"default:0"`
-	ShowBanner     bool           `json:"banner" gorm:"default:false"`
 
 	Schedules []Schedules `json:"schedules,omitempty" gorm:"foreignKey:CategoryId"`
 }

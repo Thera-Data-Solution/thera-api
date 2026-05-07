@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"thera-api/dto"
 	"thera-api/logger"
 	"thera-api/models"
 	"thera-api/repositories"
@@ -17,84 +18,154 @@ type BookedService struct {
 	BookingRepo  *repositories.BookedRepository
 	ScheduleRepo *repositories.SchedulesRepository
 	SettingRepo  repositories.SettingRepo
+	EventRepo    *repositories.EventsRepository
 }
 
-func NewBookedService(bookingRepo *repositories.BookedRepository, scheduleRepo *repositories.SchedulesRepository, settingRepo repositories.SettingRepo) *BookedService {
+func NewBookedService(bookingRepo *repositories.BookedRepository, scheduleRepo *repositories.SchedulesRepository, settingRepo repositories.SettingRepo, eventRepo *repositories.EventsRepository) *BookedService {
 	return &BookedService{
 		BookingRepo:  bookingRepo,
 		ScheduleRepo: scheduleRepo,
 		SettingRepo:  settingRepo,
+		EventRepo:    eventRepo,
 	}
 }
 
-func (s *BookedService) Create(userId, scheduleId string, tenantId string, customAnswer datatypes.JSON) error {
-	logger.Log.Info("Create booking called", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.String("tenantId", tenantId))
+func (s *BookedService) Create(userId, targetId string, tenantId string, customAnswer datatypes.JSON, bookingType int) error {
+	logger.Log.Info("Create booking called", zap.String("userId", userId), zap.Int("type", bookingType))
 
-	schedule, err := s.ScheduleRepo.FindByID(scheduleId, tenantId)
-	if err != nil {
-		logger.Log.Warn("Schedule tidak ditemukan", zap.String("scheduleId", scheduleId))
-		return err
-	}
-	if schedule.Status != "ENABLE" {
-		logger.Log.Warn("Schedule tidak tersedia untuk dibooking", zap.String("scheduleId", scheduleId))
-		return errors.New("jadwal tidak tersedia untuk dibooking")
-	}
-	if !schedule.Categories.IsGroup {
-		schedule.Status = "BOOKED"
-		if err := s.ScheduleRepo.Update(schedule); err != nil {
-			return err
+	var booked models.Booked
+	booked.UserId = userId
+	booked.TenantId = &tenantId
+	booked.CustomAnswer = customAnswer
+	booked.Status = "PENDING"
+
+	switch bookingType {
+	case 1:
+		if existing, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, targetId, tenantId); err == nil && existing != nil {
+			return errors.New("Anda sudah melakukan booking untuk jadwal ini")
 		}
-	}
+		schedule, err := s.ScheduleRepo.FindByID(targetId, tenantId)
+		if err != nil {
+			return errors.New("jadwal tidak ditemukan")
+		}
+		if schedule.Status != "ENABLE" && schedule.Status != "AVAILABLE" {
+			return errors.New("jadwal tidak tersedia")
+		}
 
-	booked := &models.Booked{
-		UserId:       userId,
-		ScheduleId:   scheduleId,
-		BookedAt:     time.Now(),
-		TenantId:     &tenantId,
-		CustomAnswer: customAnswer,
-	}
+		if !schedule.Categories.IsGroup {
+			schedule.Status = "BOOKED"
+			s.ScheduleRepo.Update(schedule)
+		}
 
-	if err := s.BookingRepo.Create(booked); err != nil {
-		logger.Log.Error("Gagal membuat booking", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.Error(err))
+		booked.ScheduleId = &targetId
+	case 2:
+		if existing, err := s.BookingRepo.GetLatestByUserAndEvent(userId, targetId, tenantId); err == nil && existing != nil {
+			return errors.New("Anda sudah melakukan booking untuk event ini")
+		}
+		event, err := s.EventRepo.FindByID(targetId, tenantId) // Pastikan EventRepo sudah ada
+		if err != nil {
+			return errors.New("event tidak ditemukan")
+		}
+		if event.Status != "available" {
+			return errors.New("event sudah tidak tersedia")
+		}
+
+		booked.EventId = &targetId
+	default:
+		return errors.New("tipe booking tidak valid")
+	}
+	if err := s.BookingRepo.Create(&booked); err != nil {
 		return err
 	}
 
-	logger.Log.Info("Booking berhasil dibuat", zap.String("userId", userId), zap.String("scheduleId", scheduleId))
-	bookedFull, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
+	bookedFull, err := s.BookingRepo.GetByIDWithDetails(booked.ID, tenantId)
 	if err == nil {
 		go s.sendTelegramNotificationAsync(bookedFull, tenantId)
-		go s.sendDiscordNotification(userId, scheduleId, tenantId)
-	} else {
-		logger.Log.Error("Gagal mengambil data untuk notifikasi", zap.Error(err))
 	}
-
 	return nil
 }
 
-func (s *BookedService) GetAll(tenantId string, limit, offset int) ([]models.Booked, int64, error) {
-	bookings, total, err := s.BookingRepo.GetAll(tenantId, limit, offset)
+func (s *BookedService) AdminChangeStatus(bookingId string, newStatus string, tenantId string) error {
+	logger.Log.Info("Admin change booking status", zap.String("id", bookingId), zap.String("status", newStatus))
+
+	booking, err := s.BookingRepo.GetByIDWithDetails(bookingId, tenantId)
+	if err != nil {
+		return errors.New("booking tidak ditemukan")
+	}
+
+	if newStatus == "CANCELLED" {
+		if booking.ScheduleId != nil {
+			schedule, err := s.ScheduleRepo.FindByID(*booking.ScheduleId, tenantId)
+			if err == nil && !schedule.Categories.IsGroup {
+				schedule.Status = "ENABLE"
+				s.ScheduleRepo.Update(schedule)
+			}
+		}
+	}
+
+	if newStatus == "CONFIRMED" {
+		if booking.ScheduleId != nil {
+			schedule, err := s.ScheduleRepo.FindByID(*booking.ScheduleId, tenantId)
+			if err == nil && !schedule.Categories.IsGroup {
+				schedule.Status = "BOOKED"
+				s.ScheduleRepo.Update(schedule)
+			}
+		}
+	}
+
+	booking.Status = newStatus
+	return s.BookingRepo.Update(booking)
+}
+
+func (s *BookedService) CloseSchedule(scheduleId string, tenantId string) error {
+	schedule, err := s.ScheduleRepo.FindByID(scheduleId, tenantId)
+	if err != nil {
+		return errors.New("jadwal tidak ditemukan")
+	}
+
+	schedule.Status = "CLOSED"
+	if err := s.ScheduleRepo.Update(schedule); err != nil {
+		return err
+	}
+	return s.BookingRepo.UpdateStatusBySchedule(scheduleId, "CONFIRMED", "CLOSED")
+}
+
+func (s *BookedService) GetAllForAdmin(tenantId string, limit, offset int) ([]dto.GetAllBookingResponse, int64, error) {
+	data, total, err := s.BookingRepo.GetAll(tenantId, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
-	return bookings, total, nil
-}
 
-func (s *BookedService) GetByUser(tenantId string, userId string) ([]models.Booked, error) {
-	bookings, err := s.BookingRepo.GetByUser(tenantId, userId)
-	if err != nil {
-		logger.Log.Error("Gagal fetch booking user", zap.String("userId", userId), zap.String("tenantId", tenantId), zap.Error(err))
-		return nil, err
-	}
-	return bookings, nil
-}
+	var response []dto.GetAllBookingResponse
+	for _, b := range data {
+		res := dto.GetAllBookingResponse{
+			ID:       b.ID,
+			Avatar:   b.User.Avatar,
+			UserId:   b.UserId,
+			FullName: b.User.FullName,
+			Email:    b.User.Email,
+			Phone:    b.User.Phone,
+			BookAt:   b.BookedAt,
+			Status:   b.Status,
+		}
+		if b.ScheduleId != nil && b.Schedule != nil {
+			res.ScheduleId = b.ScheduleId
+			name := b.Schedule.Categories.Name
+			res.ScheduleName = &name
+			res.ScheduleImage = b.Schedule.Categories.Image
+		}
 
-func (s *BookedService) GetById(id string, tenantId string) (*models.Booked, error) {
-	booked, err := s.BookingRepo.GetById(id, tenantId)
-	if err != nil {
-		logger.Log.Warn("Booking tidak ditemukan", zap.String("id", id), zap.String("tenantId", tenantId))
-		return nil, err
+		if b.EventId != nil && b.Event != nil {
+			res.EventId = b.EventId
+			name := b.Event.Name
+			res.EventName = &name
+			res.EventImage = b.Event.Image
+		}
+
+		response = append(response, res)
 	}
-	return booked, nil
+
+	return response, total, nil
 }
 
 func (s *BookedService) Update(booked *models.Booked) error {
@@ -106,124 +177,60 @@ func (s *BookedService) Update(booked *models.Booked) error {
 	return nil
 }
 
-func (s *BookedService) AddTestimoni(id string, testimoni *string, anonymous *bool, showTesti *bool, tenantId string, userId *string, userType string) (*models.Booked, error) {
-	logger.Log.Info("Add testimoni called", zap.String("id", id), zap.String("tenantId", tenantId))
-
-	booked, err := s.BookingRepo.GetById(id, tenantId)
-	if err != nil {
-		return nil, err
+func (s *BookedService) Cancel(
+	targetId string,
+	bookingType int,
+	userId *string,
+	tenantId string,
+) error {
+	if userId == nil {
+		return errors.New("user ID tidak valid")
 	}
 
-	if userType == "user" {
-		if userId == nil || booked.UserId == "" || booked.UserId != *userId {
-			return nil, errors.New("tidak memiliki akses")
+	logger.Log.Info("Cancel booking request", zap.String("targetId", targetId), zap.Int("type", bookingType), zap.String("userId", *userId))
+
+	var booking *models.Booked
+	var err error
+
+	switch bookingType {
+	case 1:
+		booking, err = s.BookingRepo.GetLatestByUserAndScheduleWithoutStatus(*userId, targetId, tenantId)
+		if err != nil {
+			return errors.New("data booking jadwal tidak ditemukan")
 		}
-	}
-
-	if booked.Schedule.Status != "CLOSED" {
-		logger.Log.Warn("Status jadwal tidak valid", zap.String("scheduleId", booked.ScheduleId))
-		fmt.Println(booked.Schedule.Status)
-		return nil, errors.New("testimoni hanya dapat diisi jika status jadwal sudah selesai")
-	}
-	var testimonis = ""
-	if testimoni == nil || *testimoni == "" {
-		if booked.Testimoni != nil {
-			testimonis = *booked.Testimoni
-		} else {
-			testimonis = ""
+		if booking.Status == "CANCELLED" || booking.Status == "CLOSED" {
+			return fmt.Errorf("booking tidak dapat dibatalkan karena status sudah %s", booking.Status)
 		}
-	} else {
-		testimonis = *testimoni
+		schedule, err := s.ScheduleRepo.FindByID(*booking.ScheduleId, tenantId)
+		if err == nil && schedule != nil {
+			if !schedule.Categories.IsGroup {
+				schedule.Status = "ENABLE"
+				if err := s.ScheduleRepo.Update(schedule); err != nil {
+					logger.Log.Error("Gagal mengupdate status schedule ke ENABLE", zap.Error(err))
+				}
+			}
+		}
+
+	case 2:
+		booking, err = s.BookingRepo.GetLatestByUserAndEventWithoutStatus(*userId, targetId, tenantId)
+		if err != nil {
+			return errors.New("data booking event tidak ditemukan")
+		}
+
+		if booking.Status == "CANCELLED" || booking.Status == "CLOSED" {
+			return fmt.Errorf("booking tidak dapat dibatalkan karena status sudah %s", booking.Status)
+		}
+	default:
+		return errors.New("tipe booking tidak valid")
 	}
-
-	booked.Testimoni = &testimonis
-	booked.ShowTesti = showTesti
-	booked.Anonymous = anonymous
-	if err := s.BookingRepo.Update(booked); err != nil {
-		return nil, err
-	}
-
-	return booked, nil
-}
-
-func (s *BookedService) Cancel(bookingId, tenantId string) error {
-	logger.Log.Info("Cancel booking called", zap.String("bookingId", bookingId), zap.String("tenantId", tenantId))
-
-	booking, err := s.BookingRepo.GetById(bookingId, tenantId)
-	if err != nil {
-		logger.Log.Warn("Booking tidak ditemukan", zap.String("bookingId", bookingId))
-		return err
-	}
-	schedule, err := s.ScheduleRepo.FindByID(booking.ScheduleId, tenantId)
-	if err != nil {
-		logger.Log.Warn("Schedule terkait tidak ditemukan", zap.String("scheduleId", booking.ScheduleId))
-		return err
-	}
-
-	schedule.Status = "ENABLE"
-	if err := s.ScheduleRepo.Update(schedule); err != nil {
-		logger.Log.Error("Gagal mengubah status schedule", zap.String("scheduleId", booking.ScheduleId), zap.Error(err))
+	booking.Status = "CANCELLED"
+	if err := s.BookingRepo.Update(booking); err != nil {
+		logger.Log.Error("Gagal memperbarui status booking menjadi CANCELLED", zap.String("bookingId", booking.ID), zap.Error(err))
 		return err
 	}
 
-	if err := s.BookingRepo.Delete(bookingId, tenantId); err != nil {
-		logger.Log.Error("Gagal menghapus booking", zap.String("bookingId", bookingId), zap.Error(err))
-		return err
-	}
-
-	logger.Log.Info("Booking berhasil dibatalkan", zap.String("bookingId", bookingId), zap.String("scheduleId", booking.ScheduleId))
+	logger.Log.Info("Booking berhasil dibatalkan", zap.String("bookingId", booking.ID), zap.String("targetId", targetId))
 	return nil
-}
-
-func (s *BookedService) GetAllTestimoni(tenantId string) ([]models.Booked, error) {
-	logger.Log.Info("Get all testimoni called", zap.String("tenantId", tenantId))
-
-	return s.BookingRepo.GetAllWithTestimoni(tenantId)
-}
-
-func (s *BookedService) AdminGetAllTestimoni(tenantId string) ([]models.Booked, error) {
-	logger.Log.Info("Get all testimoni called", zap.String("tenantId", tenantId))
-
-	return s.BookingRepo.GetAllWithTestimoniActual(tenantId)
-}
-
-// sendDiscordNotification sends a Discord notification about new booking
-func (s *BookedService) sendDiscordNotification(userId, scheduleId, tenantId string) {
-	// Get setting to check if Discord is enabled
-	setting, err := s.SettingRepo.FindByTenantId(tenantId)
-	if err != nil {
-		logger.Log.Warn("Setting tidak ditemukan untuk Discord", zap.String("tenantId", tenantId), zap.Error(err))
-		return
-	}
-
-	// Check if Discord is enabled
-	if !utils.IsDiscordEnabled(setting) {
-		logger.Log.Debug("Discord tidak diaktifkan untuk tenant", zap.String("tenantId", tenantId))
-		return
-	}
-
-	booked, err := s.BookingRepo.GetLatestByUserAndSchedule(userId, scheduleId, tenantId)
-	if err != nil {
-		logger.Log.Error("Gagal mengambil data booking untuk Discord", zap.String("userId", userId), zap.String("scheduleId", scheduleId), zap.Error(err))
-		return
-	}
-
-	message := s.formatDiscordMessage(booked, setting)
-	if message == "" {
-		logger.Log.Warn("Pesan Discord kosong", zap.String("bookingId", booked.ID))
-		return
-	}
-
-	cfg := utils.DiscordWebhookConfig{
-		WebhookURL: *setting.DiscordReportId,
-	}
-
-	if err := utils.SendDiscordWebhook(cfg, message); err != nil {
-		logger.Log.Error("Gagal mengirim notifikasi Discord", zap.String("bookingId", booked.ID), zap.Error(err))
-		return
-	}
-
-	logger.Log.Info("Notifikasi Discord berhasil dikirim", zap.String("bookingId", booked.ID))
 }
 
 // Contoh untuk Telegram (berlaku sama untuk Discord)
@@ -267,41 +274,68 @@ func (s *BookedService) sendTelegramNotificationAsync(booked *models.Booked, ten
 }
 
 func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *models.Setting) string {
-	if booked.User.ID == "" || booked.Schedule.ID == "" {
+	// Pastikan User ada, karena ini data wajib
+	if booked.User.ID == "" {
 		return ""
 	}
 
-	schedule := booked.Schedule
-	category := schedule.Categories
-	user := booked.User
+	var (
+		className, isGroupStr, locationStr, priceStr string
+		dateStr, timeStr                             string
+		targetTime                                   time.Time
+	)
 
+	// 1. Tentukan Timezone
 	timezone := "UTC"
 	if setting.Timezone != nil && *setting.Timezone != "" {
 		timezone = *setting.Timezone
 	}
-
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		logger.Log.Warn("Gagal load timezone, menggunakan UTC", zap.String("timezone", timezone), zap.Error(err))
 		loc = time.UTC
 	}
 
-	scheduleDate := schedule.DateTime.In(loc)
-	dateStr := scheduleDate.Format("02 January 2006")
-	timeStr := scheduleDate.Format("15:04")
+	// 2. Ekstraksi Data berdasarkan Tipe Booking (Schedule vs Event)
+	if booked.ScheduleId != nil && booked.Schedule != nil {
+		// LOGIKA UNTUK SCHEDULE RUTIN
+		category := booked.Schedule.Categories
+		className = category.Name
+		isGroupStr = "No"
+		if category.IsGroup {
+			isGroupStr = "Yes"
+		}
+		if category.Location != nil {
+			locationStr = *category.Location
+		}
+		priceStr = s.getPrice(category.IsFree, category.IsPayAsYouWish, category.Price)
+		targetTime = booked.Schedule.DateTime
 
-	isGroupStr := "No"
-	if category.IsGroup {
-		isGroupStr = "Yes"
+	} else if booked.EventId != nil && booked.Event != nil {
+		// LOGIKA UNTUK EVENT SEKALI JALAN
+		event := booked.Event
+		className = "[EVENT] " + event.Name
+		isGroupStr = "Yes (Event)"        // Event biasanya grup/massal
+		locationStr = "Check Description" // Sesuai model Event Anda (karena model Event belum ada field location)
+
+		// Event harganya simpel (float64)
+		if event.Price == 0 {
+			priceStr = "Free"
+		} else {
+			priceStr = fmt.Sprintf("%.2f", event.Price)
+		}
+		targetTime = event.StartAt
+	} else {
+		// Jika data tidak lengkap
+		return ""
 	}
 
-	priceStr := s.getPrice(category.IsFree, category.IsPayAsYouWish, category.Price)
+	// 3. Format Waktu
+	scheduleDate := targetTime.In(loc)
+	dateStr = scheduleDate.Format("02 January 2006")
+	timeStr = scheduleDate.Format("15:04")
 
-	locationStr := "N/A"
-	if category.Location != nil && *category.Location != "" {
-		locationStr = *category.Location
-	}
-
+	// 4. Format Sosial Media User
+	user := booked.User
 	socialMedia := ""
 	if user.Ig != nil && *user.Ig != "" {
 		socialMedia = *user.Ig
@@ -316,6 +350,7 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *mo
 		socialMedia = "N/A"
 	}
 
+	// 5. Build Message
 	message := fmt.Sprintf(
 		"<b>New Booking Request</b>\n"+
 			"<b>Class:</b> %s\n"+
@@ -328,84 +363,7 @@ func (s *BookedService) formatTelegramMessage(booked *models.Booked, setting *mo
 			"<b>Phone:</b> %s\n"+
 			"<b>Email:</b> %s\n"+
 			"<b>Sosial Media:</b> %s",
-		category.Name,
-		isGroupStr,
-		dateStr,
-		timeStr,
-		locationStr,
-		priceStr,
-		user.FullName,
-		user.Phone,
-		user.Email,
-		socialMedia,
-	)
-
-	return message
-}
-
-func (s *BookedService) formatDiscordMessage(booked *models.Booked, setting *models.Setting) string {
-	if booked.User.ID == "" || booked.Schedule.ID == "" {
-		return ""
-	}
-
-	schedule := booked.Schedule
-	category := schedule.Categories
-	user := booked.User
-
-	timezone := "UTC"
-	if setting.Timezone != nil && *setting.Timezone != "" {
-		timezone = *setting.Timezone
-	}
-
-	loc, err := time.LoadLocation(timezone)
-	if err != nil {
-		logger.Log.Warn("Gagal load timezone, menggunakan UTC", zap.String("timezone", timezone), zap.Error(err))
-		loc = time.UTC
-	}
-
-	scheduleDate := schedule.DateTime.In(loc)
-	dateStr := scheduleDate.Format("02 January 2006")
-	timeStr := scheduleDate.Format("15:04")
-
-	isGroupStr := "No"
-	if category.IsGroup {
-		isGroupStr = "Yes"
-	}
-
-	priceStr := s.getPrice(category.IsFree, category.IsPayAsYouWish, category.Price)
-
-	locationStr := "N/A"
-	if category.Location != nil && *category.Location != "" {
-		locationStr = *category.Location
-	}
-
-	socialMedia := ""
-	if user.Ig != nil && *user.Ig != "" {
-		socialMedia = *user.Ig
-	}
-	if user.Fb != nil && *user.Fb != "" {
-		if socialMedia != "" {
-			socialMedia += " / "
-		}
-		socialMedia += *user.Fb
-	}
-	if socialMedia == "" {
-		socialMedia = "N/A"
-	}
-
-	message := fmt.Sprintf(
-		"**New Booking Request**\n"+
-			"**Class:** %s\n"+
-			"**is Group:** %s\n"+
-			"**Date:** %s\n"+
-			"**Time:** %s\n"+
-			"**Location:** %s\n"+
-			"**Price:** %s\n"+
-			"**Name:** %s\n"+
-			"**Phone:** %s\n"+
-			"**Email:** %s\n"+
-			"**Sosial Media:** %s",
-		category.Name,
+		className,
 		isGroupStr,
 		dateStr,
 		timeStr,

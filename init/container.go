@@ -26,6 +26,8 @@ type Container struct {
 	SettingHandler     *handlers.SettingHandler
 	PartnerHandler     *handlers.PartnerHandler
 	TenantUserHandler  *handlers.UserHandler
+	EventHandler       *handlers.EventsHandler
+	ReviewHandler      *handlers.ReviewHandler
 }
 
 func NewContainer() *Container {
@@ -47,6 +49,8 @@ func NewContainer() *Container {
 	settingRepo := repositories.NewSettingRepo(db)
 	partnerRepo := &repositories.PartnerRepository{DB: db}
 	passwordResetRepo := repositories.NewPasswordResetRepository(db)
+	EventRepo := &repositories.EventsRepository{DB: db}
+	reviewRepo := &repositories.ReviewRepository{DB: db}
 
 	authUserService := &services.AuthUserService{UserRepo: userRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
 	authAdminService := &services.AuthAdminService{AdminRepo: adminRepo, SessionRepo: sessionRepo, TenantRepo: tenantRepo}
@@ -55,7 +59,7 @@ func NewContainer() *Container {
 	tenantService := &services.TenantService{TenantRepo: tenantRepo}
 	categoryService := &services.CategoriesService{CategoriesRepo: categoriesRepo}
 	scheduleService := &services.SchedulesService{SchedulesRepo: scheduleRepo}
-	bookingService := services.NewBookedService(bookingRepo, scheduleRepo, settingRepo)
+	bookingService := services.NewBookedService(bookingRepo, scheduleRepo, settingRepo, EventRepo)
 	heroService := &services.HeroService{Repo: heroRepo}
 	linkService := &services.LinkService{Repo: linkRepo}
 	articleService := &services.ArticleService{Repo: articleRepo}
@@ -64,16 +68,19 @@ func NewContainer() *Container {
 	settingService := services.NewSettingService(settingRepo)
 	partnerService := &services.PartnerService{PartnerRepo: partnerRepo}
 	userService := &services.UserService{UserRepo: userRepo}
+	eventService := &services.EventsService{EventsRepo: EventRepo}
+	reviewService := &services.ReviewService{ReviewRepo: reviewRepo, BookingRepo: bookingRepo}
 
+	reviewHandler := &handlers.ReviewHandler{Service: reviewService}
 	userHandler := &handlers.AuthUserHandler{
-		Service:            authUserService,
+		Service:              authUserService,
 		PasswordResetService: passwordResetService,
-		ProfileService:      profileService,
+		ProfileService:       profileService,
 	}
 	adminHandler := &handlers.AuthAdminHandler{
-		Service:            authAdminService,
+		Service:              authAdminService,
 		PasswordResetService: passwordResetService,
-		ProfileService:      profileService,
+		ProfileService:       profileService,
 	}
 	tenantHandler := &handlers.TenantHandler{Service: tenantService}
 	categoryHandler := &handlers.CategoriesHandler{Service: categoryService}
@@ -81,6 +88,7 @@ func NewContainer() *Container {
 	bookHandler := &handlers.BookedHandler{Service: bookingService}
 	heroHandler := &handlers.HeroHandler{Service: heroService}
 	linkHandler := &handlers.LinkHandler{Service: linkService}
+	eventHandler := &handlers.EventsHandler{Service: eventService}
 	articleHandler := &handlers.ArticleHandler{Service: articleService}
 	galleryHandler := &handlers.GalleryHandler{Service: galleryService}
 	translateHandler := &handlers.TranslationHandler{Service: translateService}
@@ -114,5 +122,7 @@ func NewContainer() *Container {
 		SettingHandler:     settingHandler,
 		PartnerHandler:     partnerHandler,
 		TenantUserHandler:  tenantUserHandler,
+		EventHandler:       eventHandler,
+		ReviewHandler:      reviewHandler,
 	}
 }

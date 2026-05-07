@@ -3,11 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"thera-api/dto"
 	"thera-api/models"
 	"thera-api/services"
-	"time"
+	"thera-api/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/datatypes"
@@ -24,6 +22,7 @@ func NewBookedHandler(service *services.BookedService) *BookedHandler {
 func (h *BookedHandler) Create(c *gin.Context) {
 	var req struct {
 		ScheduleId   string `json:"scheduleId" binding:"required"`
+		Type         int    `json:"type"` // 1 untuk schedule biasa, 2 untuk event
 		CustomAnswer string `json:"customAnswer"`
 	}
 
@@ -68,8 +67,9 @@ func (h *BookedHandler) Create(c *gin.Context) {
 		req.ScheduleId,
 		tenantId,
 		customAnswer,
+		req.Type,
 	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -78,217 +78,82 @@ func (h *BookedHandler) Create(c *gin.Context) {
 	})
 }
 
-func (h *BookedHandler) GetByUserId(c *gin.Context) {
-	authData, exists := c.Get("auth")
-	if !exists || authData == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	auth, ok := authData.(gin.H)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid auth data type"})
-		return
-	}
-
-	tenantId := auth["tenantId"].(string)
-	userType := auth["userType"].(string)
-
-	var userIdentifier string
-
-	if userType != "user" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak ditemukan"})
-		return
-	}
-	if uid, ok := auth["userId"].(*string); ok && uid != nil {
-		userIdentifier = *uid
-	}
-
-	booked, err := h.Service.GetByUser(tenantId, userIdentifier)
-	bookResponse := make([]dto.BookingGetResponse, 0)
-	for _, b := range booked {
-		categoryName := ""
-		if b.Schedule.ID != "" && b.Schedule.Categories.ID != "" {
-			categoryName = b.Schedule.Categories.Name
-		}
-
-		var dateTime time.Time
-		status := ""
-		if b.Schedule.ID != "" {
-			dateTime = b.Schedule.DateTime
-			status = b.Schedule.Status
-		}
-		isAnonymous := false
-		if b.Anonymous != nil {
-			isAnonymous = *b.Anonymous
-		}
-
-		bookResponse = append(bookResponse, dto.BookingGetResponse{
-			ID:        b.ID,
-			Name:      categoryName,
-			Date:      dateTime,
-			Status:    status,
-			Review:    b.Testimoni,
-			Anonymous: isAnonymous,
-		})
-	}
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, bookResponse)
-}
-
-func (h *BookedHandler) GetById(c *gin.Context) {
-	id := c.Param("id")
-	authData, _ := c.Get("auth")
-	auth := authData.(gin.H)
-	tenantId := auth["tenantId"].(string)
-
-	booked, err := h.Service.GetById(id, tenantId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, booked)
-}
-func (h *BookedHandler) GetAll(c *gin.Context) {
-	authData, _ := c.Get("auth")
-	auth := authData.(gin.H)
-	tenantId := auth["tenantId"].(string)
-
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if limit <= 0 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
-
-	booked, total, err := h.Service.GetAll(tenantId, limit, offset)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":  booked,
-		"page":  page,
-		"limit": limit,
-		"total": total,
-	})
-}
-
 func (h *BookedHandler) Cancel(c *gin.Context) {
-	id := c.Param("id")
-	authData, _ := c.Get("auth")
-	auth := authData.(gin.H)
-	tenantId := auth["tenantId"].(string)
-
-	err := h.Service.Cancel(id, tenantId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	var req struct {
+		ScheduleId string `json:"scheduleId" binding:"required"`
+		Type       int    `json:"type"`
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "kategori berhasil dihapus"})
-}
-
-func (h *BookedHandler) AddTestimoni(c *gin.Context) {
-	authData, _ := c.Get("auth")
-	auth := authData.(gin.H)
-
-	tenantId := auth["tenantId"].(string)
-	userType := auth["userType"].(string)
-	var userId *string
-	if auth["userId"] != nil {
-		userId = auth["userId"].(*string)
-	}
-
-	id := c.Param("id")
-
-	var input struct {
-		Testimoni string `json:"testimoni"`
-		Anonymous *bool  `json:"anonymous"`
-		ShowTesti *bool  `json:"showTesti"`
-	}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	authData, _ := c.Get("auth")
+	auth := authData.(gin.H)
+	tenantId := auth["tenantId"].(string)
 
-	if input.ShowTesti == nil {
-		defaultShow := false
-		input.ShowTesti = &defaultShow
-	}
-
-	result, err := h.Service.AddTestimoni(id, &input.Testimoni, input.Anonymous, input.ShowTesti, tenantId, userId, userType)
+	err := h.Service.Cancel(req.ScheduleId, req.Type, auth["userId"].(*string), tenantId)
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Testimoni berhasil ditambahkan",
-		"data":    result,
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "booking berhasil dibatalkan"})
 }
 
-func (h *BookedHandler) GetAllTestimoni(c *gin.Context) {
-	tenantId := c.GetHeader("x-tenant-id")
-	results, err := h.Service.GetAllTestimoni(tenantId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data testimoni"})
+func (h *BookedHandler) ChangeStatus(c *gin.Context) {
+	id := c.Query("id")
+	status := c.Query("status")
+
+	auth := c.MustGet("auth").(gin.H)
+	tenantId := auth["tenantId"].(string)
+
+	if id == "" || status == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id dan status diperlukan"})
 		return
 	}
 
-	responses := make([]dto.TestimoniResponse, 0)
-
-	for _, r := range results {
-		user := r.User.FullName
-		if r.Anonymous != nil && *r.Anonymous {
-			runes := []rune(user)
-			if len(runes) > 0 {
-				user = string(runes[0]) + "*****"
-			}
-		}
-		responses = append(responses, dto.TestimoniResponse{
-			ID:        r.ID,
-			Testimoni: *r.Testimoni,
-			User:      user,
-			Event:     r.Schedule.Categories.Name,
-		})
+	if err := h.Service.AdminChangeStatus(id, status, tenantId); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   responses,
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "status booking berhasil diperbarui"})
 }
 
-func (h *BookedHandler) GetAllTestimoniAdmin(c *gin.Context) {
-	tenantId := c.GetHeader("x-tenant-id")
-	results, err := h.Service.AdminGetAllTestimoni(tenantId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data testimoni"})
+func (h *BookedHandler) CloseSchedule(c *gin.Context) {
+	scheduleId := c.Query("scheduleId")
+	auth := c.MustGet("auth").(gin.H)
+	tenantId := auth["tenantId"].(string)
+
+	if scheduleId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "scheduleId diperlukan"})
 		return
 	}
 
-	responses := make([]dto.TestimoniAdminResponse, 0)
+	if err := h.Service.CloseSchedule(scheduleId, tenantId); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	for _, r := range results {
-		responses = append(responses, dto.TestimoniAdminResponse{
-			ID:        r.ID,
-			Testimoni: *r.Testimoni,
-			User:      r.User.FullName,
-			Image:     *r.User.Avatar,
-			Event:     r.Schedule.Categories.Name,
-			Anonymous: r.Anonymous != nil && *r.Anonymous,
-			ShowTesti: r.ShowTesti != nil && *r.ShowTesti,
-		})
+	c.JSON(http.StatusOK, gin.H{"message": "jadwal telah diselesaikan (CLOSED)"})
+}
+
+func (h *BookedHandler) GetAllAdmin(c *gin.Context) {
+	auth := c.MustGet("auth").(gin.H)
+	tenantId := auth["tenantId"].(string)
+
+	limit := utils.ParseInt(c.DefaultQuery("limit", "10"))
+	offset := utils.ParseInt(c.DefaultQuery("offset", "0"))
+
+	data, total, err := h.Service.GetAllForAdmin(tenantId, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   responses,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+		"data":   data,
 	})
 }
