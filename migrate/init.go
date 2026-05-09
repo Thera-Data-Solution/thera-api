@@ -5,4 +5,5 @@ func RunMigrations() {
 	Migration002()
 	Migration003()
 	Migration004()
+	Migration005()
 }

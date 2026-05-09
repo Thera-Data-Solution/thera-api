@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"thera-api/models"
 	"thera-api/services"
 	"thera-api/utils"
 
@@ -21,9 +20,9 @@ func NewBookedHandler(service *services.BookedService) *BookedHandler {
 
 func (h *BookedHandler) Create(c *gin.Context) {
 	var req struct {
-		ScheduleId   string `json:"scheduleId" binding:"required"`
-		Type         int    `json:"type"` // 1 untuk schedule biasa, 2 untuk event
-		CustomAnswer string `json:"customAnswer"`
+		ScheduleId   string      `json:"scheduleId" binding:"required"`
+		Type         int         `json:"type"` // 1 untuk schedule biasa, 2 untuk event
+		CustomAnswer interface{} `json:"customAnswer"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -49,17 +48,13 @@ func (h *BookedHandler) Create(c *gin.Context) {
 
 	var customAnswer datatypes.JSON
 
-	if req.CustomAnswer != "" {
-		var temp []models.BookedCustomField
-
-		if err := json.Unmarshal([]byte(req.CustomAnswer), &temp); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "format customAnswer tidak valid",
-			})
+	if req.CustomAnswer != nil {
+		jsonData, err := json.Marshal(req.CustomAnswer)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "format customAnswer tidak valid"})
 			return
 		}
-
-		customAnswer = datatypes.JSON(req.CustomAnswer)
+		customAnswer = datatypes.JSON(jsonData)
 	}
 
 	if err := h.Service.Create(

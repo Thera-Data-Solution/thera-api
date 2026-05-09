@@ -1,23 +1,28 @@
 package dto
 
 type CategoriesResponse struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	NameEn         string `json:"nameEn"`
-	Description    string `json:"description"`
-	DescriptionEn  string `json:"descriptionEn"`
-	Slug           string `json:"slug"`
-	Image          string `json:"image"`
-	Start          int    `json:"start"`
-	End            int    `json:"end"`
-	Location       string `json:"location"`
-	Price          int    `json:"price"`
-	IsGroup        bool   `json:"isGroup"`
-	IsFree         bool   `json:"isFree"`
-	IsPayAsYouWish bool   `json:"isPayAsYouWish"`
-	IsManual       bool   `json:"isManual"`
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	NameEn         string        `json:"nameEn"`
+	Description    string        `json:"description"`
+	DescriptionEn  string        `json:"descriptionEn"`
+	Slug           string        `json:"slug"`
+	Image          string        `json:"image"`
+	Start          int           `json:"start"`
+	End            int           `json:"end"`
+	Location       string        `json:"location"`
+	Price          int           `json:"price"`
+	IsGroup        bool          `json:"isGroup"`
+	IsFree         bool          `json:"isFree"`
+	IsPayAsYouWish bool          `json:"isPayAsYouWish"`
+	IsManual       bool          `json:"isManual"`
+	CustomFields   []CustomField `json:"customFields"`
 }
 
+type CustomField struct {
+	Type  string `json:"type"`
+	Label string `json:"label"`
+}
 type AdminCategoriesResponse struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`

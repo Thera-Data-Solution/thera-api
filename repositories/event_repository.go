@@ -17,6 +17,16 @@ func (r *EventsRepository) Create(event *models.Events) error {
 func (r *EventsRepository) FindAll(tenant string) ([]models.Events, error) {
 	var events []models.Events
 	err := r.DB.
+		Where(`tenant_id = ? AND status = ?`, tenant, "available").
+		Order("start_at ASC").
+		Find(&events).
+		Error
+	return events, err
+}
+
+func (r *EventsRepository) FindAllAsAdmin(tenant string) ([]models.Events, error) {
+	var events []models.Events
+	err := r.DB.
 		Where(`tenant_id = ?`, tenant).
 		Order("start_at ASC").
 		Find(&events).

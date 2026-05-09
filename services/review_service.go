@@ -47,7 +47,6 @@ func (s *ReviewService) SubmitReview(userId string, req dto.ReviewUpsertRequest,
 
 	return s.ReviewRepo.Upsert(review)
 }
-
 func (s *ReviewService) GetHistory(userId, tenantId string) ([]dto.UserHistoryResponse, error) {
 	data, err := s.ReviewRepo.GetUserHistory(userId, tenantId)
 	if err != nil {
@@ -62,22 +61,31 @@ func (s *ReviewService) GetHistory(userId, tenantId string) ([]dto.UserHistoryRe
 			BookedAt:  b.BookedAt,
 		}
 
-		if b.ScheduleId != nil {
+		// Cek Schedule aman
+		if b.ScheduleId != nil && b.Schedule != nil {
 			item.ItemName = b.Schedule.Categories.Name
-			item.ItemImage = *b.Schedule.Categories.Image
 			item.ScheduleDate = b.Schedule.DateTime
-		} else if b.EventId != nil {
+			if b.Schedule.Categories.Image != nil {
+				item.ItemImage = *b.Schedule.Categories.Image
+			}
+		} else if b.EventId != nil && b.Event != nil {
 			item.ItemName = b.Event.Name
-			item.ItemImage = *b.Event.Image
 			item.ScheduleDate = b.Event.StartAt
-		}
-
-		if b.Review != nil {
-			item.Review = &dto.ReviewInfo{
-				Content:    b.Review.Content,
-				IsApproved: b.Review.IsApproved,
+			if b.Event.Image != nil {
+				item.ItemImage = *b.Event.Image
 			}
 		}
+
+		// Cek Review aman
+		if b.Review != nil {
+			item.Review = &dto.ReviewInfo{
+				Content:     b.Review.Content,
+				IsAnonymous: b.Review.IsAnonymous,
+				// IsApproved tidak perlu di-set jika tidak ada di DTO,
+				// Go akan otomatis menggunakan default value (false) jika field ada di struct.
+			}
+		}
+
 		res = append(res, item)
 	}
 	return res, nil
@@ -94,7 +102,10 @@ func (s *ReviewService) GetPublicTestimonials(tenantId string) ([]dto.PublicRevi
 	for _, b := range data {
 		userName := b.User.FullName
 		if b.Review.IsAnonymous {
-			userName = "Anonymous"
+			runes := []rune(userName)
+			if len(runes) > 0 {
+				userName = string(runes[0]) + "*****"
+			}
 		}
 
 		targetName := ""
@@ -113,4 +124,58 @@ func (s *ReviewService) GetPublicTestimonials(tenantId string) ([]dto.PublicRevi
 		})
 	}
 	return res, nil
+}
+
+func (s *ReviewService) AdminGetAllReviews(tenantId string) ([]dto.AdminReviewResponse, error) {
+	// Kita gunakan fungsi GetAllForAdmin yang melakukan preload User, Schedule, dan Event
+	data, err := s.ReviewRepo.GetAllForAdmin(tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]dto.AdminReviewResponse, 0)
+	for _, b := range data {
+		if b.Review == nil {
+			continue
+		}
+
+		targetName := ""
+		if b.ScheduleId != nil {
+			targetName = b.Schedule.Categories.Name
+		} else if b.EventId != nil {
+			targetName = b.Event.Name
+		}
+
+		res = append(res, dto.AdminReviewResponse{
+			ID:          b.Review.ID,
+			BookingId:   b.ID,
+			UserName:    b.User.FullName,
+			TargetName:  targetName,
+			TargetType:  b.Review.TargetType,
+			Content:     b.Review.Content,
+			IsApproved:  b.Review.IsApproved,
+			IsAnonymous: b.Review.IsAnonymous,
+			CreatedAt:   b.Review.CreatedAt,
+		})
+	}
+	return res, nil
+}
+
+func (s *ReviewService) AdminUpdateReview(reviewId string, req dto.AdminUpdateReviewRequest) error {
+	review, err := s.ReviewRepo.FindByID(reviewId)
+	if err != nil {
+		return errors.New("ulasan tidak ditemukan")
+	}
+
+	// Update content jika dikirim
+	if req.Content != nil {
+		review.Content = *req.Content
+	}
+
+	// Update status approval jika dikirim
+	if req.IsApproved != nil {
+		review.IsApproved = *req.IsApproved
+	}
+
+	return s.ReviewRepo.Update(review)
 }

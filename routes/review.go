@@ -7,10 +7,8 @@ import (
 )
 
 func RegisterReviewRoutes(router *gin.RouterGroup, c *initpkg.Container) {
-	// Publik (Landing Page)
 	router.GET("/testimonials", c.ReviewHandler.GetLandingPageReviews)
 
-	// User (Authenticated)
 	user := router.Group("/history")
 	user.Use(c.Middlewares.Handle())
 	{
@@ -18,6 +16,10 @@ func RegisterReviewRoutes(router *gin.RouterGroup, c *initpkg.Container) {
 		user.POST("/review", c.ReviewHandler.SubmitReview)
 	}
 
-	// Admin (Khusus moderasi)
-	// admin := router.Group("/radm") ... dst
+	admin := router.Group("/radm")
+	admin.Use(c.Middlewares.Handle(), c.AtLeastAdmin.Handle())
+	{
+		admin.GET("", c.ReviewHandler.AdminGetAll)
+		admin.PUT("/:id", c.ReviewHandler.AdminUpdate)
+	}
 }

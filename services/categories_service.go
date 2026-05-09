@@ -33,6 +33,10 @@ func (s *CategoriesService) GetCategoryByIDAsAdmin(id string, tenant string) (*m
 	return s.CategoriesRepo.FindByIDAndTenant(id, tenant)
 }
 
+func (s *CategoriesService) GetCategoryBySlug(slug string, tenant string) (*models.Categories, error) {
+	return s.CategoriesRepo.FindByTenantSlug(slug, tenant)
+}
+
 func (s *CategoriesService) GetCategoryByIDAndTenant(id string, tenant string) (*models.Categories, error) {
 	return s.CategoriesRepo.FindByIDAndTenant(id, tenant)
 }

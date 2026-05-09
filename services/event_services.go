@@ -21,6 +21,10 @@ func (s *EventsService) GetAllEvents(tenant string) ([]models.Events, error) {
 	return s.EventsRepo.FindAll(tenant)
 }
 
+func (s *EventsService) GetAllEventsAsAdmin(tenant string) ([]models.Events, error) {
+	return s.EventsRepo.FindAllAsAdmin(tenant)
+}
+
 func (s *EventsService) GetEventByID(id string, tenant string) (*models.Events, error) {
 	return s.EventsRepo.FindByID(id, tenant)
 }
@@ -36,6 +40,7 @@ func (s *EventsService) CreateEvent(
 	status string,
 	tenantId *string,
 	customFields datatypes.JSON,
+	location string,
 ) (*models.Events, error) {
 	if tenantId == nil || strings.TrimSpace(*tenantId) == "" {
 		return nil, errors.New("tenantId tidak boleh kosong")
@@ -60,6 +65,7 @@ func (s *EventsService) CreateEvent(
 		Status:        status,
 		TenantId:      tenantId,
 		CustomFields:  customFields,
+		Location:      location,
 	}
 
 	if err := s.EventsRepo.Create(event); err != nil {

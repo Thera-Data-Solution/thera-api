@@ -12,6 +12,7 @@ type Events struct {
 	NameEn        string         `json:"nameEn,omitempty"`
 	Description   *string        `json:"description,omitempty"`
 	DescriptionEn *string        `json:"descriptionEn,omitempty"`
+	Location      string         `json:"location,omitempty"`
 	Image         *string        `json:"image,omitempty"`
 	Slug          string         `json:"slug" gorm:"uniqueIndex;not null"`
 	Price         float64        `json:"price" gorm:"default:0"`

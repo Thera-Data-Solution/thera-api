@@ -44,6 +44,15 @@ func (r *CategoriesRepository) FindByID(id string, tenant string) (*models.Categ
 	return &category, nil
 }
 
+func (r *CategoriesRepository) FindByTenantSlug(slug string, tenant string) (*models.Categories, error) {
+	var category models.Categories
+	err := r.DB.First(&category, `slug = ? AND tenant_id = ? AND disable = false`, slug, tenant).Error
+	if err != nil {
+		return nil, err
+	}
+	return &category, nil
+}
+
 func (r *CategoriesRepository) FindBySlug(slug string) (*models.Categories, error) {
 	var category models.Categories
 	err := r.DB.First(&category, `slug = ?`, slug).Error

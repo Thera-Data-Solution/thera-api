@@ -36,16 +36,22 @@ func (r *SchedulesRepository) FindByID(id string, tenantId string) (*models.Sche
 }
 
 func (r *SchedulesRepository) FindByCatID(
-	id string,
+	slug string,
 	tenantId string,
 	date string,
 ) ([]models.Schedules, error) {
 
 	var schedules []models.Schedules
 
-	query := r.DB.
-		Preload("Categories").
-		Where("tenant_id = ? AND category_id = ?", tenantId, id)
+	subQueryCatId := r.DB.Model(&models.Categories{}).
+		Select("id").
+		Where("tenant_id = ? AND slug = ?", tenantId, slug)
+
+	println(subQueryCatId)
+
+	query := r.DB.Preload("Categories").
+		Where("tenant_id = ?", tenantId).
+		Where("category_id IN (?)", subQueryCatId)
 
 	if date != "" {
 		query = query.Where(

@@ -16,6 +16,7 @@ func RegisterEventsRoutes(router *gin.RouterGroup, c *initpkg.Container) {
 
 	adminEvents := router.Group("/eadm")
 	{
+		adminEvents.GET("", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.EventHandler.GetAllAsAdmin)
 		adminEvents.POST("", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.EventHandler.Create)
 		adminEvents.PUT("/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.EventHandler.Update)
 		adminEvents.DELETE("/:id", c.Middlewares.Handle(), c.AtLeastAdmin.Handle(), c.EventHandler.Delete)

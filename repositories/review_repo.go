@@ -57,3 +57,13 @@ func (r *ReviewRepository) GetAllForAdmin(tenantId string) ([]models.Booked, err
 		Find(&results).Error
 	return results, err
 }
+
+func (r *ReviewRepository) FindByID(id string) (*models.Review, error) {
+	var review models.Review
+	err := r.DB.First(&review, "id = ?", id).Error
+	return &review, err
+}
+
+func (r *ReviewRepository) Update(review *models.Review) error {
+	return r.DB.Save(review).Error
+}

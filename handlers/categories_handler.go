@@ -148,8 +148,6 @@ func (h *CategoriesHandler) GetAllAsAdmin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Inisialisasi dengan make agar jika data kosong, JSON yang keluar tetap [] bukan null
 	response := make([]dto.AdminCategoriesResponse, 0)
 
 	for _, cat := range data {
@@ -188,22 +186,49 @@ func (h *CategoriesHandler) GetAllAsAdmin(c *gin.Context) {
 
 		response = append(response, res)
 	}
-
-	// Mengembalikan response (otomatis [] jika len 0 karena sudah di-make)
 	c.JSON(http.StatusOK, gin.H{
 		"data": response,
 	})
 }
 
-func (h *CategoriesHandler) GetByID(c *gin.Context) {
+func (h *CategoriesHandler) GetBySlug(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
-	id := c.Param("id")
-	category, err := h.Service.GetCategoryByID(id, tenantId)
+	slug := c.Param("slug")
+	category, err := h.Service.GetCategoryBySlug(slug, tenantId)
+
+	var response dto.CategoriesResponse
+	if category != nil {
+		var customFields []dto.CustomField
+		if len(category.CustomFields) > 0 {
+			json.Unmarshal(category.CustomFields, &customFields)
+		}
+		response = dto.CategoriesResponse{
+			ID:             category.ID,
+			Name:           category.Name,
+			NameEn:         category.NameEn,
+			Description:    *category.Description,
+			DescriptionEn:  *category.DescriptionEn,
+			Slug:           category.Slug,
+			Image:          *category.Image,
+			Start:          category.Start,
+			End:            category.End,
+			Location:       *category.Location,
+			Price:          int(*category.Price),
+			IsGroup:        category.IsGroup,
+			IsFree:         category.IsFree,
+			IsPayAsYouWish: category.IsPayAsYouWish,
+			IsManual:       category.IsManual,
+			CustomFields:   customFields,
+		}
+		if response.NameEn == "" {
+			response.NameEn = response.Name
+		}
+	}
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "kategori tidak ditemukan"})
 		return
 	}
-	c.JSON(http.StatusOK, category)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *CategoriesHandler) GetByIDAsAdmin(c *gin.Context) {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"thera-api/dto"
 	"thera-api/services"
 	"thera-api/utils"
 
@@ -78,9 +79,23 @@ func (h *HeroHandler) GetAll(c *gin.Context) {
 		return
 	}
 	heroes, err := h.Service.GetAllHeroes(tenantId)
+	response := dto.HeroResponse{
+		ID:            heroes.ID,
+		Title:         heroes.Title,
+		TitleEn:       heroes.TitleEn,
+		Subtitle:      heroes.Subtitle,
+		SubtitleEn:    heroes.SubtitleEn,
+		Description:   heroes.Description,
+		DescriptionEn: heroes.DescriptionEn,
+		Image:         heroes.Image,
+		ButtonText:    heroes.ButtonText,
+		ButtonTextEn:  heroes.ButtonTextEn,
+		ButtonLink:    heroes.ButtonLink,
+		ThemeType:     heroes.ThemeType,
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, heroes)
+	c.JSON(http.StatusOK, response)
 }

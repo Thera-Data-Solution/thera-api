@@ -10,7 +10,7 @@ func RegisterCategoriesRoutes(router *gin.RouterGroup, c *initpkg.Container) {
 	categories := router.Group("/categories")
 	{
 		categories.GET("", c.CategoryHandler.GetAll)
-		categories.GET("/:id", c.CategoryHandler.GetByID)
+		categories.GET("/:slug", c.CategoryHandler.GetBySlug)
 	}
 
 	adminCategories := router.Group("/cadm")

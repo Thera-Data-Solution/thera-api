@@ -27,6 +27,23 @@ type UserHistoryResponse struct {
 }
 
 type ReviewInfo struct {
-	Content    string `json:"content"`
-	IsApproved bool   `json:"isApproved"`
+	Content     string `json:"content"`
+	IsAnonymous bool   `json:"isAnonymous"`
+}
+
+type AdminReviewResponse struct {
+	ID          string    `json:"id"`
+	BookingId   string    `json:"bookingId"`
+	UserName    string    `json:"userName"`
+	TargetName  string    `json:"targetName"`
+	TargetType  string    `json:"targetType"`
+	Content     string    `json:"content"`
+	IsApproved  bool      `json:"isApproved"`
+	IsAnonymous bool      `json:"isAnonymous"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type AdminUpdateReviewRequest struct {
+	Content    *string `json:"content"`
+	IsApproved *bool   `json:"isApproved"`
 }

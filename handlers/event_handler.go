@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"thera-api/dto"
 	"thera-api/services"
 	"thera-api/utils"
 	"time"
@@ -30,6 +32,7 @@ func (h *EventsHandler) Create(c *gin.Context) {
 	price := utils.ParseFloat64(c.PostForm("price"))
 	capacity := utils.ParseInt(c.PostForm("capacity"))
 	status := c.PostForm("status")
+	location := c.PostForm("location")
 	if status == "" {
 		status = "available"
 	}
@@ -57,7 +60,7 @@ func (h *EventsHandler) Create(c *gin.Context) {
 
 	event, err := h.Service.CreateEvent(
 		name, nameEn, &description, &descriptionEn, slug, imageURL,
-		price, startAt, endAt, capacity, status, &tenantId, customFields,
+		price, startAt, endAt, capacity, status, &tenantId, customFields, location,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -74,6 +77,46 @@ func (h *EventsHandler) GetAll(c *gin.Context) {
 	}
 
 	events, err := h.Service.GetAllEvents(tenantId)
+	var response []dto.EventResponse
+	for _, event := range events {
+		var customFieldsData []dto.CustomField
+		if len(event.CustomFields) > 0 {
+			err := json.Unmarshal(event.CustomFields, &customFieldsData)
+			if err != nil {
+				fmt.Printf("Error unmarshal custom fields: %v\n", err)
+			}
+		}
+		response = append(response, dto.EventResponse{
+			ID:            event.ID,
+			Name:          event.Name,
+			NameEn:        event.NameEn,
+			Description:   event.Description,
+			DescriptionEn: event.DescriptionEn,
+			Image:         event.Image,
+			Slug:          event.Slug,
+			Price:         event.Price,
+			StartAt:       event.StartAt,
+			EndAt:         event.EndAt,
+			Capacity:      event.Capacity,
+			Status:        event.Status,
+			Location:      event.Location,
+		})
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *EventsHandler) GetAllAsAdmin(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	if tenantId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tenant_id required"})
+		return
+	}
+
+	events, err := h.Service.GetAllEventsAsAdmin(tenantId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -85,11 +128,34 @@ func (h *EventsHandler) GetByID(c *gin.Context) {
 	tenantId := c.GetHeader("x-tenant-id")
 	id := c.Param("id")
 	event, err := h.Service.GetEventByID(id, tenantId)
+	var customFieldsData []dto.CustomField
+	if len(event.CustomFields) > 0 {
+		err := json.Unmarshal(event.CustomFields, &customFieldsData)
+		if err != nil {
+			fmt.Printf("Error unmarshal custom fields: %v\n", err)
+		}
+	}
+	response := dto.EventResponse{
+		ID:            event.ID,
+		Name:          event.Name,
+		NameEn:        event.NameEn,
+		Description:   event.Description,
+		DescriptionEn: event.DescriptionEn,
+		Image:         event.Image,
+		Slug:          event.Slug,
+		Price:         event.Price,
+		StartAt:       event.StartAt,
+		EndAt:         event.EndAt,
+		Capacity:      event.Capacity,
+		Status:        event.Status,
+		Location:      event.Location,
+		CustomFields:  customFieldsData,
+	}
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "event tidak ditemukan"})
 		return
 	}
-	c.JSON(http.StatusOK, event)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *EventsHandler) Update(c *gin.Context) {

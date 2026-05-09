@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"thera-api/dto"
@@ -138,21 +139,27 @@ func (s *BookedService) GetAllForAdmin(tenantId string, limit, offset int) ([]dt
 
 	var response []dto.GetAllBookingResponse
 	for _, b := range data {
+		var customAnswer []dto.CustomAnswerResponse
+		if err := json.Unmarshal(b.CustomAnswer, &customAnswer); err != nil {
+			logger.Log.Error("Gagal unmarshal customAnswer", zap.String("bookingId", b.ID), zap.Error(err))
+		}
 		res := dto.GetAllBookingResponse{
-			ID:       b.ID,
-			Avatar:   b.User.Avatar,
-			UserId:   b.UserId,
-			FullName: b.User.FullName,
-			Email:    b.User.Email,
-			Phone:    b.User.Phone,
-			BookAt:   b.BookedAt,
-			Status:   b.Status,
+			ID:           b.ID,
+			Avatar:       b.User.Avatar,
+			UserId:       b.UserId,
+			FullName:     b.User.FullName,
+			Email:        b.User.Email,
+			Phone:        b.User.Phone,
+			BookAt:       b.BookedAt,
+			Status:       b.Status,
+			CustomAnswer: customAnswer,
 		}
 		if b.ScheduleId != nil && b.Schedule != nil {
 			res.ScheduleId = b.ScheduleId
 			name := b.Schedule.Categories.Name
 			res.ScheduleName = &name
 			res.ScheduleImage = b.Schedule.Categories.Image
+			res.ScheduleDate = &b.Schedule.DateTime
 		}
 
 		if b.EventId != nil && b.Event != nil {
@@ -160,6 +167,7 @@ func (s *BookedService) GetAllForAdmin(tenantId string, limit, offset int) ([]dt
 			name := b.Event.Name
 			res.EventName = &name
 			res.EventImage = b.Event.Image
+			res.EventDate = &b.Event.StartAt
 		}
 
 		response = append(response, res)

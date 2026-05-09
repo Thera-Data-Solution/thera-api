@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"thera-api/dto"
@@ -85,9 +86,9 @@ func (h *SchedulesHandler) GetByCatID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error 01"})
 		return
 	}
-	catId := c.Param("id")
+	slug := c.Param("slug")
 	date := c.Query("date")
-	schedule, err := h.Service.GetScheduleByCatID(catId, tenantId, date)
+	schedule, err := h.Service.GetScheduleByCatID(slug, tenantId, date)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "jadwal tidak ditemukan"})
 		return
@@ -108,6 +109,63 @@ func (h *SchedulesHandler) GetByID(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, schedule)
+}
+
+func (h *SchedulesHandler) GetScheduleByID(c *gin.Context) {
+	tenantId := c.GetHeader("x-tenant-id")
+	if tenantId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "x-tenant-id header is required"})
+		return
+	}
+
+	id := c.Param("id")
+	schedule, err := h.Service.GetScheduleByID(id, tenantId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "jadwal tidak ditemukan"})
+		return
+	}
+	if schedule == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "jadwal tidak ditemukan"})
+		return
+	}
+	var customFieldsData []dto.CustomField
+	if len(schedule.Categories.CustomFields) > 0 {
+		err := json.Unmarshal(schedule.Categories.CustomFields, &customFieldsData)
+		if err != nil {
+			fmt.Printf("Error unmarshal custom fields: %v\n", err)
+		}
+	}
+	response := dto.ScheduleIdResponse{
+		ID:             schedule.ID,
+		DateTime:       schedule.DateTime,
+		Name:           schedule.Categories.Name,
+		NameEn:         schedule.Categories.NameEn,
+		Status:         schedule.Status,
+		Start:          schedule.Categories.Start,
+		End:            schedule.Categories.End,
+		IsGroup:        schedule.Categories.IsGroup,
+		IsFree:         schedule.Categories.IsFree,
+		IsPayAsYouWish: schedule.Categories.IsPayAsYouWish,
+		IsManual:       schedule.Categories.IsManual,
+	}
+	if schedule.Categories.Description != nil {
+		response.Description = *schedule.Categories.Description
+	}
+	if schedule.Categories.DescriptionEn != nil {
+		response.DescriptionEn = *schedule.Categories.DescriptionEn
+	}
+	if schedule.Categories.Image != nil {
+		response.Image = *schedule.Categories.Image
+	}
+	if schedule.Categories.Location != nil {
+		response.Location = *schedule.Categories.Location
+	}
+	if schedule.Categories.Price != nil {
+		response.Price = int(*schedule.Categories.Price)
+	}
+	response.CustomFields = customFieldsData
+
+	c.JSON(http.StatusOK, response)
 }
 
 type UpdateScheduleRequest struct {
